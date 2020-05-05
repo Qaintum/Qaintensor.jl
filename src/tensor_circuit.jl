@@ -34,7 +34,9 @@ Incorporate a circuit gate chain into a quantum tensor network state,
 effectively applying the circuit to the state.
 """
 function tensor_circuit!(ψ::TensorNetwork, cgc::CircuitGateChain{N}) where {N}
-    for gate in cgc
-        tensor_circuit!(ψ, gate)
+    for moment in cgc
+        for gate in moment
+            tensor_circuit!(ψ, gate)
+        end
     end
 end
