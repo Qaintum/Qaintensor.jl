@@ -33,7 +33,7 @@ using Qaintessent
 
 end
 
-@testset ExtendedTestSet "decompose" begin
+@testset ExtendedTestSet "decompose 2-qubit" begin
     # Test decomposition of 2-qubit gate
     N = 3
     # initial MPS wavefunction
@@ -57,7 +57,9 @@ end
     tensor_circuit!(ψ, cgc)
 
     @test ψref ≈ contract(ψ)[:]
+end
 
+@testset ExtendedTestSet "decompose 3-qubit" begin
     # Test decomposition of 3-qubit gate
     N = 4
     # initial MPS wavefunction
@@ -77,11 +79,15 @@ end
     push!(ψ.openidx, 3=>1)
     push!(ψ.openidx, 4=>1)
 
-    cg = controlled_circuit_gate((3), (4,1), SwapGate(), N)
-    cgc = CircuitGateChain{N}([cg])
+    cgc = CircuitGateChain{N}([
+    controlled_circuit_gate((3), (4,1), SwapGate(), N),
+    controlled_circuit_gate((1), (3), XGate(), N),
+    single_qubit_circuit_gate(2, YGate(), N),
+    single_qubit_circuit_gate(3, ZGate(), N),
+    ])
     ψref = apply(cgc, contract(ψ)[:])
 
-    tensor_circuit!(ψ, cg)
+    tensor_circuit!(ψ, cgc)
 
     @test ψref ≈ contract(ψ)[:]
 
