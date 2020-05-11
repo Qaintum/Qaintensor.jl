@@ -11,5 +11,5 @@ jobs:
       - uses: julia-actions/setup-julia@latest
         with:
           version: ${{ matrix.julia-version }}
-      - run: julia test/installQaintessent.jl
+      - run: julia --project test/installQaintessent.jl
       - uses: julia-actions/julia-runtest@master
