@@ -17,7 +17,15 @@ export
 include("tensor_circuit.jl")
 export
     tensor_circuit!
+    
+include("svd.jl")
+export
+    contract_svd
 
+include("mps.jl")
+export
+    MPS,
+    contract_svd_mps
 
 # re-export definitions from Qaintessent.jl
 
