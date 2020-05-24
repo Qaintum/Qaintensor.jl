@@ -2,11 +2,14 @@ module Qaintensor
 
 using Qaintessent
 using TensorOperations
+using LinearAlgebra
 
 
 include("tensor.jl")
 export
-    Tensor
+    Tensor,
+    isunitary,
+    ishermitian
 
 include("tensor_network.jl")
 export
@@ -17,7 +20,7 @@ export
 include("tensor_circuit.jl")
 export
     tensor_circuit!
-    
+
 include("svd.jl")
 export
     contract_svd
