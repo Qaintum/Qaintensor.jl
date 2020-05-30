@@ -1,18 +1,18 @@
 function MPS(T::AbstractVector{Tensor})
     l=length(T)
     for i in 1:l
-        @assert ndims(T[i])==3
+        @assert ndims(T[i]) == 3
     end
 
-    contractions=[Summation([i=>3,i+1=>1]) for i in 1:l-1]
-    openidx=reverse([1=>1; [i=>2 for i in 1:l]; l=>3])
+    contractions=[Summation([i => 3, i+1 => 1]) for i in 1:l-1]
+    openidx=reverse([1 => 1; [i => 2 for i in 1:l]; l => 3])
     tn=TensorNetwork(T, contractions, openidx)
     return tn
 end
 
 function MPS(T::Tensor, l)
     #translational invariant MPS
-    return MPS(fill(T,l))
+    return MPS(fill(T, l))
 end
 
 """
@@ -24,9 +24,9 @@ er: maximum error in the truncation done in an individual contraction
 """
 function contract_svd_mps(tn::TensorNetwork, er)
 
-    for (i,id) in enumerate(tn.contractions)
-        @assert length(id.idx)==2
-        @assert (id.idx[1].second==3) & (id.idx[2].second==1)
+    for (i, id) in enumerate(tn.contractions)
+        @assert length(id.idx) == 2
+        @assert (id.idx[1].second == 3) & (id.idx[2].second == 1)
         #error if the contractions are not in the right order
     end
 
