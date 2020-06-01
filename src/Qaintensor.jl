@@ -33,6 +33,9 @@ export
     ClosedMPS,
     contract_svd_mps
 
+include("expect_value.jl")
+export
+    exp_value
 # re-export definitions from Qaintessent.jl
 
 # gates
