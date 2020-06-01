@@ -26,22 +26,19 @@ function adjoint_tensor(T::Tensor, inlegs, outlegs)
     return Tensor(Tdagger)
 end
 
-function isunitary(T::Tensor, inlegs, outlegs)
+function isunitary(T::Tensor, inlegs::NTuple{M, <:Integer}) where M
 
-    #TODO: implement this when the inlegs and outlegs are not ordered as the first and last legs
+    #TODO: simplify for the case when the legs are already ordered
 
-    #TODO: implement for "non-square tensors" (number of inlegs different from outlegs)
-
-    length(inlegs) == length(outlegs) || error("Number of incoming legs is different from outgoing legs")
-    Tdagger = adjoint_tensor(T, inlegs, outlegs)
-
-    T, Tdagger = T.data, Tdagger.data
-    dim_in, dim_out = size(T)[1:length(inlegs)], size(T)[length(inlegs)+1:end]
-    newdims = (prod(dim_in), prod(dim_out))
-    T, Tdagger = reshape(T, newdims), reshape(Tdagger, reverse(newdims))
-
-    return T*Tdagger ≈ I
-
+    outlegs = Tuple(setdiff(Tuple(1:Qaintensor.ndims(T)), inlegs))
+    T = permutedims(T.data, [inlegs...; outlegs...])
+    newdim = (prod(size(T)[1:length(inlegs)]), prod(size(T)[length(inlegs)+1:end]))
+    T = reshape(T, newdim)
+    Tdagger = adjoint(T)
+    if size(T)[1] < size(T)[1]
+        return T*Tdagger ≈ I
+        else return Tdagger*T ≈ I
+    end
 end
 
 
