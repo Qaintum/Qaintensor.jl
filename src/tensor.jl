@@ -16,8 +16,6 @@ function adjoint_tensor(T::Tensor, inlegs, outlegs)
 
     #TODO: implement adjoint when the inlegs and outlegs are not ordered as the first and last legs
 
-    #TODO: allow to have open indices
-
     T = T.data
     dim_in, dim_out = size(T)[1:length(inlegs)], size(T)[length(inlegs)+1:end]
     newdims = (prod(dim_in), prod(dim_out))
