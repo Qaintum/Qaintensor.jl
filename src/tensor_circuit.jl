@@ -15,8 +15,27 @@ function tensor_circuit!(ψ::TensorNetwork, cg::CircuitGate{M,N,G}) where {M,N,G
     d = 2
 
     # add gate as tensor to network
-    push!(ψ.tensors, Tensor(reshape(Qaintessent.matrix(cg.gate), fill(d, 2*M)...)))
+    if M > 1
+        for (i, (t, c, w)) in enumerate(zip(decompose!(cg)...))
+            push!(ψ.tensors, t)
+            if i == 1
+                push!(ψ.contractions, Summation([ψ.openidx[w], length(ψ.tensors) => 1]))
+            else
+                push!(ψ.contractions, Summation([ψ.openidx[w], length(ψ.tensors) => 2]))
+            end
+            if c > 0
+                push!(ψ.contractions, Summation([length(ψ.tensors)-1 => c, length(ψ.tensors) => 1]))
+            end
+            if i == 1
+                ψ.openidx[w] = length(ψ.tensors) => 2
+            else
+                ψ.openidx[w] = length(ψ.tensors) => 3
+            end
+        end
+        return
+    end
 
+    push!(ψ.tensors, Tensor(reshape(Qaintessent.matrix(cg.gate), fill(d, 2*M)...)))
     for (i, w) in enumerate(cg.iwire)
         # contractions with new tensor;
         # last qubit corresponds to fastest varying index
