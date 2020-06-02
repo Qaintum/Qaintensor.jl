@@ -25,7 +25,7 @@ function decompose!(cg::CircuitGate{M,N,G}) where {M,N,G}
     U, S, V = svd(Array(m))
     bond_dim = size(S)[1]
 
-    m = diagm(S) * adjoint(V)
+    m = diagm(S) * transpose(V)
 
     push!(t, Tensor(reshape(U, (2, 2, bond_dim))))
     pushfirst!(w, cg.iwire[1])
@@ -35,7 +35,7 @@ function decompose!(cg::CircuitGate{M,N,G}) where {M,N,G}
     for i in 2:M-1
         m = reshape(m, (bond_dim * 4, :))
         U, S, V = svd(Array(m))
-        m = diagm(S) * adjoint(V)
+        m = diagm(S) * transpose(V)
         new_bond_dim = size(S)[1]
 
         push!(t, Tensor(reshape(U, (bond_dim, 2, 2, new_bond_dim))))
