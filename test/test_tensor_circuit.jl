@@ -54,7 +54,7 @@ end
     cgc = CircuitGateChain{N}([cg])
     ψref = apply(cgc, contract(ψ)[:])
 
-    tensor_circuit!(ψ, cgc)
+    tensor_circuit!(ψ, cgc, is_decompose=true)
 
     @test ψref ≈ contract(ψ)[:]
 end
@@ -87,7 +87,7 @@ end
     ])
     ψref = apply(cgc, contract(ψ)[:])
 
-    tensor_circuit!(ψ, cgc)
+    tensor_circuit!(ψ, cgc, is_decompose=true)
 
     @test ψref ≈ contract(ψ)[:]
 
