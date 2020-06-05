@@ -3,7 +3,7 @@ using TestSetExtensions
 using Qaintensor
 using Qaintessent
 
-
+#
 @testset ExtendedTestSet "tensor circuit" begin
 
     N = 3
@@ -133,7 +133,5 @@ end
 
     # println(contract_rep(ψ))
     contract_order(ψ)
-
-    # @test ψref ≈ contract(ψ)[:]
 
 end
