@@ -3,7 +3,7 @@ using TestSetExtensions
 using Qaintensor
 using Qaintessent
 
-
+#
 @testset ExtendedTestSet "tensor circuit" begin
 
     N = 3
@@ -81,10 +81,8 @@ end
 
     cgc = CircuitGateChain{N}([
     controlled_circuit_gate((3), (4,1), SwapGate(), N),
-    single_qubit_circuit_gate(2, YGate(), N),
     controlled_circuit_gate((1), (3), XGate(), N),
     single_qubit_circuit_gate(2, YGate(), N),
-    controlled_circuit_gate((1,2), 4, X, N),
     single_qubit_circuit_gate(3, ZGate(), N),
     ])
     ψref = apply(cgc, contract(ψ)[:])
@@ -94,4 +92,3 @@ end
     @test ψref ≈ contract(ψ)[:]
 
 end
-
