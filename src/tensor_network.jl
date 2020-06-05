@@ -19,3 +19,11 @@ mutable struct TensorNetwork
     # ordered "open" (uncontracted) indices (list of tensor and leg indices)
     openidx::AbstractVector{Pair{Integer,Integer}}
 end
+
+function Base.deepcopy(net::TensorNetwork)
+    a = TensorNetwork([],[],[])
+    a.tensors = deepcopy(net.tensors)
+    a.contractions = deepcopy(net.contractions)
+    a.openidx = deepcopy(net.openidx)
+    return a
+end
