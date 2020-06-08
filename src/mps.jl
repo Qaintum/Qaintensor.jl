@@ -29,8 +29,8 @@ function ClosedMPS(T::AbstractVector{Tensor})
     return tn
 end
 
-function ClosedMPS(T::Tensor, N::Integer)
-    return ClosedMPS(fill(T, N))
+function ClosedMPS(Tfirst::Tensor, Tmiddle::Tensor, Tend::Tensor, N::Integer)
+    return ClosedMPS(Tfirst; fill(Tmiddle, N-2); Tend)
 end
 
 function PeriodicMPS(T::AbstractVector{Tensor})
@@ -65,10 +65,10 @@ function contract_svd_mps(tn::TensorNetwork, er)
         #error if the contractions are not in the right order
     end
 
-    lchain=length(tn.tensors)
-    tcontract=tn.tensors[1]
+    lchain = length(tn.tensors)
+    tcontract = tn.tensors[1]
     for j in 2:lchain
-        tcontract=contract_svd(tcontract, tn.tensors[j], (1+j,1), er)
+        tcontract = contract_svd(tcontract, tn.tensors[j], (1+j,1), er)
     end
     return tcontract
 end

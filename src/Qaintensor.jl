@@ -29,6 +29,9 @@ export
     ClosedMPS,
     contract_svd_mps
 
+include("mpo.jl")
+export
+    MPO
 # re-export definitions from Qaintessent.jl
 
 # gates
