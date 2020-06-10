@@ -214,7 +214,6 @@ function contract(net::TensorNetwork; optimize=false)
     if optimize
 
         sequence, cost = contract_order(net, legcosts, indexlist)
-        println(sequence)
         for i in 1:length(indexlist)
             for j in 1:length(indexlist[i])
                 if indexlist[i][j] > 0
@@ -222,12 +221,9 @@ function contract(net::TensorNetwork; optimize=false)
                 end
             end
         end
-        @btime a = TensorOperations.ncon([t.data for t in $net.tensors], $indexlist)
-        # @btime a = TensorOperations.ncon([t.data for t in $net.tensors], $indexlist; order=$sequence)
         return TensorOperations.ncon([t.data for t in net.tensors], indexlist; order=sequence)
     end
 
     # for now simply forward the contraction operation to 'ncon'
-    @btime b = TensorOperations.ncon([t.data for t in $net.tensors], $indexlist)
     return TensorOperations.ncon([t.data for t in net.tensors], indexlist)
 end
