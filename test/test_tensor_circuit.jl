@@ -99,7 +99,7 @@ end
     @test ψref ≈ contract(ψ)[:]
 end
 
-@testset ExtendedTestSet "test contract order" begin
+@testset ExtendedTestSet "test decompose" begin
     # Test decomposition of 3-qubit gate
     N = 4
     # initial MPS wavefunction
@@ -125,11 +125,10 @@ end
     single_qubit_circuit_gate(2, YGate(), N),
     single_qubit_circuit_gate(3, ZGate(), N),
     ])
-    # ψref = apply(cgc, contract(ψ)[:])
+    ψref = apply(cgc, contract(ψ)[:])
 
     tensor_circuit!(ψ, cgc)
 
-    # println(contract_rep(ψ))
     contract_order(ψ)
-
+    @test ψref ≈ contract(ψ, is_decompose=true)[:]
 end
