@@ -31,7 +31,9 @@ export
 
 include("mpo.jl")
 export
-    MPO
+    MPO,
+    circuit_MPO,
+    apply_MPO
 # re-export definitions from Qaintessent.jl
 
 # gates

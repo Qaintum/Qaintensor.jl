@@ -30,7 +30,7 @@ function ClosedMPS(T::AbstractVector{Tensor})
 end
 
 function ClosedMPS(Tfirst::Tensor, Tmiddle::Tensor, Tend::Tensor, N::Integer)
-    return ClosedMPS(Tfirst; fill(Tmiddle, N-2); Tend)
+    return ClosedMPS([Tfirst; fill(Tmiddle, N-2); Tend])
 end
 
 function PeriodicMPS(T::AbstractVector{Tensor})

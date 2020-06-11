@@ -8,5 +8,6 @@ end
 
 
 ndims(t::Tensor) = Base.ndims(t.data)
-Base.reshape(t::Tensor,dim::Tuple) =Tensor(Base.reshape(t.data,dim))
-Base.reshape(t::Tensor,dim::Int...)=reshape(t, dim)
+Base.reshape(t::Tensor,dim::Tuple) = Tensor(Base.reshape(t.data,dim))
+Base.reshape(t::Tensor,dim::Int...) = reshape(t, dim)
+Base.size(t::Tensor) = Base.size(t.data) 
