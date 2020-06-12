@@ -19,17 +19,17 @@ function tensor_circuit!(ψ::TensorNetwork, cg::CircuitGate{M,N,G}; is_decompose
         for (i, (t, c, w)) in enumerate(zip(decompose!(cg)...))
             push!(ψ.tensors, t)
             if i == 1
-                push!(ψ.contractions, Summation([ψ.openidx[w], length(ψ.tensors) => 1]))
-            else
                 push!(ψ.contractions, Summation([ψ.openidx[w], length(ψ.tensors) => 2]))
+            else
+                push!(ψ.contractions, Summation([ψ.openidx[w], length(ψ.tensors) => 3]))
             end
             if c > 0
                 push!(ψ.contractions, Summation([length(ψ.tensors)-1 => c, length(ψ.tensors) => 1]))
             end
             if i == 1
-                ψ.openidx[w] = length(ψ.tensors) => 2
+                ψ.openidx[w] = length(ψ.tensors) => 1
             else
-                ψ.openidx[w] = length(ψ.tensors) => 3
+                ψ.openidx[w] = length(ψ.tensors) => 2
             end
 
         end
