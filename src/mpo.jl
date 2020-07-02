@@ -1,6 +1,8 @@
 using LinearAlgebra
-"""  MPO(m::AbstractMatrix)
-Given the matrix m of an operator, MPO transforms it into a Matrix Product Operator form.
+"""
+    MPO(m::AbstractMatrix)
+
+it decomposes an operator described trough the matrix `m` to a TensorNetwork 
 """
 function MPO(m::AbstractMatrix)
 
@@ -70,37 +72,28 @@ function shift_summation(S::Summation, step)
    return Summation([S.idx[i].first + step => S.idx[i].second for i in 1:2])
 end
 
-"""  circuit_MPO(MPO::TensorNetwork, N, iwire::NTuple{M, <:Integer}) where M
-Given an MPO acting on M qubits, not necessesarily adjacent, it converts it in an MPO acting on N qubits.
 """
-function circuit_MPO(MPO::TensorNetwork, N, iwire::NTuple{M, <:Integer}) where M
+    circuit_MPO(MPO::TensorNetwork, N, iwire::NTuple{M, <:Integer}) where M
 
+extends an operator `MPO` acting on `M` qudits into an operator acting on `N` qudits by inserting identities
+"""
+function circuit_MPO(MPO::TensorNetwork, iwire::NTuple{M, <:Integer}) where M
+
+    N = length(iwire[1]:iwire[end])
     @assert length(MPO.tensors) == M
     M != N || error("MPO is already decomposed in N tensors")
     M ≥ 1 || error("MPO needs at least one qubit to act on.")
-    M ≤ N || error("Number of qubits in which the MPO acts cannot be larger than total number of qubits.")
 
+    # TODO: support general "qudits"
     d = 2
 
-    if iwire[1] > 1
-        MPO.tensors[1] = reshape(MPO.tensor[1], (1, size(MPO.tensor[1])...))
-        Vpipe = reshape(Matrix(1I, d, d), (d, d, 1))
-        pushfirst!(MPO.tensors, Vpipe)
-    end
-
-    if iwire[end] < N
-        MPO.tensor[end] = reshape(MPO.tensor[end], (size(MPO.tensor[end])..., 1))
-        Vpipe = reshape(Matrix(1I, d, d), (1, d, d))
-        push!(MPO.tensors, Vpipe)
-    end
-
-    for w in setdiff((1:N...,), iwire)
-        if (w != 1) & (w != N)
-            bond = size(MPO.tensors[w])[1]
-            Vpipe = reshape(kron(Matrix(1I, bond, bond), Matrix(1I, d, d)), (bond, d, bond, d))
-            Vpipe = permutedims(Vpipe, [1,2,4,3])
-            insert!(MPO.tensors, w, Tensor(Vpipe))
-        end
+    pipeswire = setdiff((iwire[1]:iwire[end]...,), iwire)
+    for (i,w) in enumerate(pipeswire)
+        bond = size(MPO.tensors[w-iwire[1]])[end]
+        Vpipe = reshape(kron(Matrix(1I, bond, bond), Matrix(1I, d, d)), (bond, d, bond, d))
+        #Julia ordena las dimensiones de salida->entrada
+        Vpipe = permutedims(Vpipe, [1,2,4,3])
+        insert!(MPO.tensors, w-iwire[1]+1, Tensor(Vpipe))
     end
 
     for i in M:N-1
@@ -108,34 +101,52 @@ function circuit_MPO(MPO::TensorNetwork, N, iwire::NTuple{M, <:Integer}) where M
         pushfirst!(MPO.openidx, i + 1 => 3)
         insert!(MPO.openidx, M + i, i + 1 => 2)
     end
+
     return MPO
 end
 
-"""  apply_MPO(ψ::TensorNetwork, MPO::TensorNetwork, iwire::NTuple{M, <:Integer}) where M
-Given a state ψ of N qudits in a Tensor Network form and an operator MPO acting on M qudits,
-it updates the state by effectively applying the MPO. If M < N the MPO is first converted into
-a circuit MPO acting on N qudits.  """
+"""
+    apply_MPO(ψ::TensorNetwork, MPO::TensorNetwork, iwire::NTuple{M, <:Integer}) where M
+
+given a state `ψ`  in a Tensor Network form and an operator `MPO` acting on `M` qudits, it updates the state by effectively applying `MPO`. If `M` is smaller than the number of qudits of `psi`,  `circuit_MPO` is first applied.
+"""
 function apply_MPO(ψ::TensorNetwork, MPO::TensorNetwork, iwire::NTuple{M, <:Integer}) where M
 
+    iwire = sort(collect(iwire))
     # TODO: support general "qudits"
     d = 2
-
-    N = length(ψ.openidx)
+    n = length(ψ.openidx) #number of qudits
     step = length(ψ.tensors)
 
+    N = length(iwire[1]:iwire[end])
     if M < N
-        MPO = circuit_MPO(MPO, N, iwire)
+        MPO = circuit_MPO(MPO, Tuple(iwire))
     end
 
-    ψ_prime = TensorNetwork(copy(ψ.tensors),[copy(ψ.contractions); shift_summation.(MPO.contractions, step)], [])
-    for i in 1:N-1
-        push!(ψ_prime.tensors, MPO.tensors[i])
-        push!(ψ_prime.contractions, Summation([ψ.openidx[i], N + step-i+1 => 3]))
-        push!(ψ_prime.openidx, N + step - i+1 => 2)
+    qwire = (iwire[1]:iwire[end]...,)
+    qbef = (1:iwire[1]-1...,)
+    qaft = (iwire[end]+1:n...,)
+
+    ψ_prime = TensorNetwork([copy(ψ.tensors); copy(MPO.tensors)],
+                        [copy(ψ.contractions); shift_summation.(MPO.contractions, step)],
+                        [])
+    for (i,w) in enumerate(qwire[2:end])
+        push!(ψ_prime.contractions, Summation([ψ.openidx[n-w+1], step+i+1 => 3]))
     end
-    push!(ψ_prime.tensors, MPO.tensors[N])
-    push!(ψ_prime.openidx, 1+step => 1)
-    push!(ψ_prime.contractions, Summation([ψ.openidx[N], step + 1 => 2]))
+    push!(ψ_prime.contractions, Summation([ψ.openidx[n-qwire[1]+1], step + 1 => 2]))
+
+    for (i,q) in enumerate(qaft)
+        push!(ψ_prime.openidx, ψ.openidx[n-q+1])
+    end
+
+    for (i,w) in enumerate(qwire[2:end])
+            push!(ψ_prime.openidx,  N + step - i + 1 => 2)
+    end
+    push!(ψ_prime.openidx, step + 1 => 1)
+
+    for (i,q) in enumerate(qbef)
+        push!(ψ_prime.openidx, ψ.openidx[n-q+1])
+    end
 
     return ψ_prime
 end
