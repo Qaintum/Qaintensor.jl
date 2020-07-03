@@ -38,6 +38,10 @@ export
     circuit_MPO,
     apply_MPO
 
+include("switch.jl")
+export
+    switch!
+
 # re-export definitions from Qaintessent.jl
 
 # gates
