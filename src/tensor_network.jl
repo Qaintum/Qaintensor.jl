@@ -7,11 +7,15 @@ struct Summation
     idx::AbstractVector{Pair{Integer,Integer}}
 end
 
+"""
+Abstract struct representing TensorNetwork
+"""
+abstract type TensorNetwork end
 
 """
-Tensor network, consisting of tensors and contraction operations
+General Tensor network, consisting of tensors and contraction operations
 """
-mutable struct TensorNetwork
+mutable struct GeneralTensorNetwork <: TensorNetwork
     # list of tensors
     tensors::AbstractVector{Tensor}
     # contractions, specified as list of summations
@@ -21,6 +25,11 @@ mutable struct TensorNetwork
 end
 
 
+"""
+    contract(net::TensorNetwork)
+
+fully contracts a TensorNetwork object
+"""
 function contract(net::TensorNetwork)
 
     # TODO: approximate contraction using SVD splittings
