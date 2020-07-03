@@ -138,7 +138,7 @@ function PeriodicMPS(T::AbstractVector{Tensor})
 
     contractions = [[Summation([i => 3,i+1 => 1]) for i in 1:l-1]; Summation([l => 3, 1 => 1])]
     openidx = reverse([i => 2 for i in 1:l])
-    tn = GeneralTensorNetwork(T, contractions, openidx)
+    tn = MPS(T, contractions, openidx)
     return tn
 end
 
