@@ -160,7 +160,7 @@ function contract(tn::MPS; er::Real=0.0)
     tcontract = tn.tensors[1]
     k = length(size(tcontract)) - 2
     for j in 2:lchain
-        tcontract = contract_svd(tcontract, tn.tensors[j], (j+k,1), er)
+        tcontract = contract_svd(tcontract, tn.tensors[j], (j+k,1); er=er)
     end
     return tcontract
 end
