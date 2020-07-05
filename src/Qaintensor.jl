@@ -22,6 +22,8 @@ include("tensor_circuit.jl")
 export
     tensor_circuit!
 
+include("contraction_order.jl")
+
 
 # re-export definitions from Qaintessent.jl
 
