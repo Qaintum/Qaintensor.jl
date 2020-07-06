@@ -23,6 +23,8 @@ export
     tensor_circuit!
 
 include("contraction_order.jl")
+export
+    optimize_contraction_order!
 
 
 # re-export definitions from Qaintessent.jl
