@@ -19,10 +19,15 @@ using Qaintessent
     # open (physical) legs
     push!(ψ.openidx, 1=>1)
     push!(ψ.openidx, 2=>1)
-    push!(ψ.openidx, 3=>1)
+    # push!(ψ.openidx, 3=>1)
 
     cgc = qft_circuit(N)
 
+    # test iwire error
+    @test_throws DimensionMismatch tensor_circuit!(ψ, cgc)
+
+    push!(ψ.openidx, 3=>1) # fix openidx
+    
     # conventional statevector representation, as reference
     ψref = apply(cgc, contract(ψ)[:])
 
@@ -30,6 +35,7 @@ using Qaintessent
     tensor_circuit!(ψ, cgc)
 
     @test ψref ≈ contract(ψ)[:]
+
 
 end
 
@@ -92,3 +98,5 @@ end
     @test ψref ≈ contract(ψ)[:]
 
 end
+
+

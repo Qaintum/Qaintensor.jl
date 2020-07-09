@@ -9,7 +9,9 @@ function tensor_circuit!(ψ::TensorNetwork, cg::CircuitGate{M,N,G}; is_decompose
     # TODO: specialization for various G
 
     # number of wires must agree
-    @assert N == length(ψ.openidx)
+    # @assert N == length(ψ.openidx)
+    (N == length(ψ.openidx)) || 
+        throw(DimensionMismatch("number of open legs and circuit wires must match")) 
 
     # TODO: support general "qudits"
     d = 2
