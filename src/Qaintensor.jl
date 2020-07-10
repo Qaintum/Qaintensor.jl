@@ -10,6 +10,7 @@ export
 
 include("tensor_network.jl")
 export
+    GeneralTensorNetwork,
     TensorNetwork,
     Summation,
     contract
@@ -24,16 +25,23 @@ export
 
 include("mps.jl")
 export
+    MPS,
     OpenMPS,
     PeriodicMPS,
     ClosedMPS,
-    contract_svd_mps
+    contract_svd_mps,
+    check_mps
 
 include("mpo.jl")
 export
     MPO,
     circuit_MPO,
     apply_MPO
+
+include("switch.jl")
+export
+    switch!
+
 # re-export definitions from Qaintessent.jl
 
 # gates

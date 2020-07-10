@@ -8,7 +8,7 @@ Contract tensors `T1` and `T2` along indices in `idx` with error `er`
 - idx: (id1, id2) indices of T1 and T2 to contract
 - er: maximum error in the truncation
 """
-function contract_svd(T1::Tensor, T2::Tensor, indx::NTuple{2,Int}, er)
+function contract_svd(T1::Tensor, T2::Tensor, indx::NTuple{2,Int}; er=0.0)
     i1,i2 = indx
     n1, n2 = Qaintensor.ndims(T1), Qaintensor.ndims(T2)
     D1, D2 = size(T1.data, i1), size(T2.data,i2)

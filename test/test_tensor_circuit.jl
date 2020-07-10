@@ -8,7 +8,7 @@ using Qaintensor
     N = 3
 
     # initial MPS wavefunction
-    ψ = TensorNetwork([], [], [])
+    ψ = GeneralTensorNetwork([], [], [])
     push!(ψ.tensors, Tensor(randn(ComplexF64, (2, 6))))
     push!(ψ.tensors, Tensor(randn(ComplexF64, (2, 6, 7))))
     push!(ψ.tensors, Tensor(randn(ComplexF64, (2, 7))))
