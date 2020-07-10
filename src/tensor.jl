@@ -8,3 +8,5 @@ end
 
 
 ndims(t::Tensor) = Base.ndims(t.data)
+Base.size(t::Tensor) = size(t.data)
+Base.conj(t::Tensor) = Tensor(conj(t.data))

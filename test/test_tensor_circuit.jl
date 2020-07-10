@@ -24,12 +24,12 @@ using Qaintessent
     cgc = qft_circuit(N)
 
     # conventional statevector representation, as reference
-    ψref = apply(cgc, contract(ψ)[:])
+    ψref = apply(cgc, Qaintensor.contract(ψ)[:])
 
     # using tensor network representation
     tensor_circuit!(ψ, cgc)
 
-    @test ψref ≈ contract(ψ)[:]
+    @test ψref ≈ Qaintensor.contract(ψ)[:]
 
 end
 
@@ -52,11 +52,11 @@ end
 
     cg = controlled_circuit_gate((3), (1), Z, N)
     cgc = CircuitGateChain{N}([cg])
-    ψref = apply(cgc, contract(ψ)[:])
+    ψref = apply(cgc, Qaintensor.contract(ψ)[:])
 
     tensor_circuit!(ψ, cgc, is_decompose=true)
 
-    @test ψref ≈ contract(ψ)[:]
+    @test ψref ≈ Qaintensor.contract(ψ)[:]
 end
 
 @testset ExtendedTestSet "decompose 3-qubit" begin
@@ -85,10 +85,10 @@ end
     single_qubit_circuit_gate(2, YGate(), N),
     single_qubit_circuit_gate(3, ZGate(), N),
     ])
-    ψref = apply(cgc, contract(ψ)[:])
+    ψref = apply(cgc, Qaintensor.contract(ψ)[:])
 
     tensor_circuit!(ψ, cgc, is_decompose=true)
 
-    @test ψref ≈ contract(ψ)[:]
+    @test ψref ≈ Qaintensor.contract(ψ)[:]
 
 end

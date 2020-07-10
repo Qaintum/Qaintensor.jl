@@ -11,8 +11,7 @@ export
 include("tensor_network.jl")
 export
     TensorNetwork,
-    Summation,
-    contract
+    Summation
 
 include("decompose.jl")
 export
@@ -22,10 +21,39 @@ include("tensor_circuit.jl")
 export
     tensor_circuit!
 
+include("helper.jl")
+export
+    tn_to_ssa,
+    cgc_to_ssa,
+    tn_graph_creation
+
+include("breadth_search_contraction.jl")
+export
+    optimal_contraction_order
+
+include("greedy_contraction.jl")
+export
+    greedy_contraction_order
+
+include("contract.jl")
+export
+    contract
+
 include("contraction_order.jl")
 export
     optimize_contraction_order!
 
+include("catn_contraction.jl")
+export
+    catn_contraction_cost
+
+    include("swap_contraction.jl")
+    export
+        swap_contraction_cost
+
+include("cost_estimation.jl")
+    export
+        cost_estimate
 
 # re-export definitions from Qaintessent.jl
 
