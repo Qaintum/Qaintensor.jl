@@ -7,7 +7,7 @@ using Statistics
 
 decomposes the given tensor network into cannonical MPS form, such that each tensor is only composed of MPSs
 """
-function catn_index_decomposition(index_list::Vector{Vector{T}}, leg_costs::Dict{Int, Int}) where {T}
+function catn_index_decomposition(index_list::Vector{Vector{T}}, leg_costs::Dict{Int, Int}; max_bond_dim=typemax(Int64)) where {T}
     mindex_list = maximum([abs.(x) for x in index_list])
     count = maximum(mindex_list)[1] + 1
 
@@ -24,7 +24,7 @@ function catn_index_decomposition(index_list::Vector{Vector{T}}, leg_costs::Dict
             for j in 2:num_t-1
                 push!(new_index_list, [t[j], count, count+1])
                 push!(color, num)
-                leg_costs[count+1] = leg_costs[count] * 2
+                leg_costs[count+1] = leg_costs[count] * 2 < max_bond_dim ? leg_costs[count] * 2 : max_bond_dim
                 count += 1
             end
             push!(new_index_list, [t[end], count])
@@ -136,48 +136,96 @@ end
 
 shifts given mps to edge of tensor before contracting two different tensors
 """
-function shift_to_edge!(g, edge_costs, mps, color, final_vertex; head=true)
+function shift_to_edge!(g, edge_costs, mps, color, final_vertex)
 
-    if length(neighbors(g, mps)) < 2
+    if length(neighbors(g, mps)) <= 2
         push!(final_vertex, mps)
         return 0
     end
     mps_color = color[mps]
+    targets = []
 
-    if head
-        i = -1
-    else
-        i = 1
+    for i in 1:length(color)
+        if color[i] == mps_color && length(neighbors(g, i)) == 2
+            push!(targets, i)
+        end
+        if length(targets) == 2
+            break
+        end
     end
+
+    function h_func(n)
+        start_color = color[mps]
+        if color[n] != color[mps]
+            return typemax(Int16)
+        end
+        return 1
+    end
+
     swapcost = 0
 
-    target = mps + i
-    println("Target " * string(target) * " MPS: " * string(mps))
-    while length(neighbors(g, mps)) > 2
-        println("Now swapping " * string(mps) * " and " * string(mps+i))
-        if isempty(neighbors(g, target)) || color[target] != mps_color
-            i += sign(i)
-            target = mps + i % length(color)
-            if target <= 0
-                target += length(color)
-            end
-            continue
-        end
-        target = mps + i % length(color)
-        if target <= 0
-            target += length(color)
-        end
-        swapcost += swap_cost(g, mps, target, edge_costs)
-        swap_edges(g, mps, target, mps_color, color, edge_costs)
-        mps = target
-        i = Int(i/norm(i))
+    path1 = a_star(g, mps, targets[1], LightGraphs.DefaultDistance(), h_func)
+    path2 = a_star(g, mps, targets[2], LightGraphs.DefaultDistance(), h_func)
+
+    if length(path1) < length(path2)
+        path = path1
+    else
+        path = path2
     end
-    push!(final_vertex, mps)
+
+    if length(path) < 1
+        push!(final_vertex, mps)
+        return swapcost
+    end
+
+    # if head
+    #     i = -1
+    # else
+    #     i = 1
+    # end
+    # swapcost = 0
+    #
+    # target = mps + i
+    # println("Target " * string(target) * " MPS: " * string(mps))
+    # println(color)
+
+    for e in path
+        src_vertex = src(e)
+        dst_vertex = dst(e)
+        swapcost += swap_cost(g, src_vertex, dst_vertex, edge_costs)
+        swap_edges(g, src_vertex, dst_vertex, mps_color, color, edge_costs)
+    end
+    push!(final_vertex, dst(path[end]))
+    println("Shifting " * string(mps) * " to " * string(dst(path[end])) * "\nCost increased by " * string(swapcost))
     swapcost
+
+    #
+    # while length(neighbors(g, mps)) > 2
+    #     println("Now swapping " * string(mps) * " and " * string(mps+i))
+    #
+    #     if isempty(neighbors(g, target)) || color[target] != mps_color || !(target in neighbors(g, mps))
+    #         i += sign(i)
+    #         target = mps + i % length(color)
+    #         if target <= 0
+    #             target += length(color)
+    #         end
+    #         continue
+    #     end
+    #     target = mps + i % length(color)
+    #     if target <= 0
+    #         target += length(color)
+    #     end
+    #     swapcost += swap_cost(g, mps, target, edge_costs)
+    #     swap_edges(g, mps, target, mps_color, color, edge_costs)
+    #     mps = target
+    #     i = Int(i/norm(i))
+    # end
+    # push!(final_vertex, mps)
+    # swapcost
 end
 
 """
-    shift_adjacent!(g, edge_costs, mps, color, final_vertex; head=true)
+    shift_adjacent!(g, edge_costs, mps, color, final_vertex)
 
 shifts given mps adjacent to target mps
 """
@@ -341,9 +389,10 @@ end
 
 
 function catn_contraction_cost(cgc::CircuitGateChain{N}, max_bond_dim::Int) where {N}
+    max_bond_dim = 6
     # index_list, leg_costs = index_creation(cgc)
     index_list, leg_costs = cgc_to_ssa(cgc)
-    index_list, color = catn_index_decomposition(index_list, leg_costs)
+    index_list, color = catn_index_decomposition(index_list, leg_costs; max_bond_dim=max_bond_dim)
     g, edge_costs = tn_graph_creation(index_list, leg_costs)
 
     iter = 0
@@ -384,8 +433,8 @@ function catn_contraction_cost(cgc::CircuitGateChain{N}, max_bond_dim::Int) wher
         # Shift nodes to merge to edge of MPS
         src_vertex = []
         dst_vertex = []
-        cost += shift_to_edge!(g, edge_costs, mps1, color, src_vertex; head=false)
-        cost += shift_to_edge!(g, edge_costs, mps2, color, dst_vertex; head=true)
+        cost += shift_to_edge!(g, edge_costs, mps1, color, src_vertex)
+        cost += shift_to_edge!(g, edge_costs, mps2, color, dst_vertex)
 
         # Contract edge
         cost += contract_mps!(g, src_vertex[1], dst_vertex[1], edge_costs)
@@ -445,6 +494,5 @@ function catn_contraction_cost(cgc::CircuitGateChain{N}, max_bond_dim::Int) wher
     println(edge_costs)
     iter += 1
     TikzGraphs.save(TikzGraphs.SVG("simplegraph" * string(iter) * ".svg"), t)
-    println(cost)
-
+    cost
 end
