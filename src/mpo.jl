@@ -98,7 +98,7 @@ extends an operator `MPO` acting on `M` qudits into an operator acting on `N` qu
 """
 
 function circuit_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
-    N = length(iwire[1]:iwire[end])    
+    N = length(iwire[1]:iwire[end])
     @assert length(mpo.tensors) == M
 
     M != N || error("MPO is already decomposed in N tensors")
@@ -122,7 +122,7 @@ function circuit_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
         insert!(mpo.openidx, M + i, i + 1 => 2)
     end
 
-    return MPO
+    return mpo
 end
 
 """
