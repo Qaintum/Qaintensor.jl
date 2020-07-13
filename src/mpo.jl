@@ -148,7 +148,7 @@ function apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) whe
     qbef = (1:iwire[1]-1...,)
     qaft = (iwire[end]+1:n...,)
 
-    ψ_prime = TensorNetwork([copy(ψ.tensors); copy(mpo.tensors)],
+    ψ_prime = GeneralTensorNetwork([copy(ψ.tensors); copy(mpo.tensors)],
                         [copy(ψ.contractions); shift_summation.(mpo.contractions, step)],
                         [])
     for (i,w) in enumerate(qwire[2:end])
