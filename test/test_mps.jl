@@ -13,7 +13,7 @@ using Random
     mps_contract=contract(gmps)
     mps_svd=contract(mps; er=0.0)
 
-    @test mps_contract ≈ mps_svd.data
+    @test mps_contract ≈ mps_svd
 end
 
 @testset ExtendedTestSet "closed_mps" begin
@@ -27,7 +27,7 @@ end
     mps_contract=contract(gmps)
     mps_svd=contract(mps; er=0.0)
 
-    @test mps_contract ≈ mps_svd.data
+    @test mps_contract ≈ mps_svd
 end
 
 @testset ExtendedTestSet "conversion from state-vector to mps" begin
@@ -44,7 +44,7 @@ end
 
     ψ = contract(mps)
 
-    @test ψ_ref ≈ reshape(ψ.data, (2^N,))
+    @test ψ_ref ≈ reshape(ψ, (2^N,))
 end
 
 @testset ExtendedTestSet "test permute MPS" begin
@@ -63,7 +63,7 @@ end
     permute!(mps, order)
 
     ψ = contract(mps)
-    @test ψ_perm ≈ reshape(ψ.data, (2^N,))
+    @test ψ_perm ≈ reshape(ψ, (2^N,))
 end
 
 @testset ExtendedTestSet "test permute MPS exceptions" begin
@@ -107,7 +107,7 @@ end
     switch!(mps, [(2,3), (4,6), (4,5)])
 
     ψ = contract(mps)
-    @test ψ_perm ≈ reshape(ψ.data, (2^N,))
+    @test ψ_perm ≈ reshape(ψ, (2^N,))
 
     mps = MPS(ψ_ref)
     switch!(mps, 2, 3)
@@ -115,7 +115,7 @@ end
     switch!(mps, 4, 5)
 
     ψ = contract(mps)
-    @test ψ_perm ≈ reshape(ψ.data, (2^N,))
+    @test ψ_perm ≈ reshape(ψ, (2^N,))
 end
 
 @testset ExtendedTestSet "test switch MPS exceptions" begin
@@ -152,7 +152,7 @@ end
     switch!(mps, 1)
 
     ψ = contract(mps)
-    @test ψ_perm ≈ reshape(ψ.data, (2^N,))
+    @test ψ_perm ≈ reshape(ψ, (2^N,))
 end
 
 @testset ExtendedTestSet "test switch neighboring MPS qubits exceptions" begin
