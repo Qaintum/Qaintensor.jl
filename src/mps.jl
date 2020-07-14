@@ -162,5 +162,5 @@ function contract(tn::MPS; er::Real=0.0)
     for j in 2:lchain
         tcontract = contract_svd(tcontract, tn.tensors[j], (j+k,1); er=er)
     end
-    return tcontract
+    return tcontract.data
 end
