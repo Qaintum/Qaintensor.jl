@@ -10,7 +10,7 @@ end
 """
     circuit_graph(cgc)
 
-Simple DAG of a CircuitGateChain using JuliaGraphs
+Graph of a CircuitGateChain using JuliaGraphs
 """
 function circuit_graph(cgc::CircuitGateChain{N}) where N
     G = Graph()
@@ -33,13 +33,19 @@ function circuit_graph(cgc::CircuitGateChain{N}) where N
     return G, node_info
 end
 
-function network_graph(T::TensorNetwork)
+"""
+    network_graph(net)
 
-    M = length(T.tensors)
+Graph of TensorNetwork  `net` using JuliaGraphs. Returns the graph and
+a dictionary `edge_idx` that for a given pair of Tensors `(i, j)` returns
+the indices of `net.contractions` that involve them.
+"""
+function network_graph(net::TensorNetwork)
+    M = length(net.tensors)
     G = Graph(M)
     edge_idx = Dict{Tuple, Array{Int,1}}()
 
-    for (k,s) in enumerate(T.contractions)
+    for (k,s) in enumerate(net.contractions)
         length(s.idx) == 2 || error("Contractions of more than 2 tensors not supported")
         i, j = s.idx[1].first, s.idx[2].first
         i ≤ j ? nothing : (i, j) = (j, i)
@@ -124,8 +130,8 @@ function line_graph(cgc::CircuitGateChain)
     LG, node_info
 end
 
-function line_graph(T::TensorNetwork)
-    G, edge_idx = network_graph(T)
+function line_graph(net::TensorNetwork)
+    G, edge_idx = network_graph(net)
 
     LG = Graph()
     node_info = NTuple{3, Int64}[]
@@ -418,14 +424,14 @@ function contraction_order(cgc::CircuitGateChain)
     contraction_order(H, edges)
 end
 
-function contraction_order(T::TensorNetwork)
-    _, edge_idx = network_graph(T)
-    H, edges = line_graph(T)
+function contraction_order(net::TensorNetwork)
+    _, edge_idx = network_graph(net)
+    H, edges = line_graph(net)
     con_order = contraction_order(H, edges)
 
     # add trace-like contractions at the beginning
     auto_con = NTuple{3, Int}[]
-    for i in 1:length(T.tensors)
+    for i in 1:length(net.tensors)
         if (i, i) in keys(edge_idx)
             for k in edge_idx[(i,i)]
                 push!(auto_con, (i,i,k))
@@ -436,8 +442,8 @@ function contraction_order(T::TensorNetwork)
     return [auto_con; con_order]
 end
 
-function optimize_contraction_order!(T::TensorNetwork)
-    order = contraction_order(T)
+function optimize_contraction_order!(net::TensorNetwork)
+    order = contraction_order(net)
     perm = [t[3] for t in order]
-    T.contractions = T.contractions[perm]
+    net.contractions = net.contractions[perm]
 end
