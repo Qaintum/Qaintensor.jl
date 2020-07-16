@@ -14,23 +14,23 @@ Graph of a CircuitGateChain using JuliaGraphs
 """
 function circuit_graph(cgc::CircuitGateChain{N}) where N
     G = Graph()
-    node_info = Union{String, CircuitGate}[]
+    nodeinfo = Union{String, CircuitGate}[]
     for i in 1:N
         add_vertex!(G)
-        push!(node_info, "q$i")
+        push!(nodeinfo, "q$i")
     end
     qubit_node = [1:N...]
     for moment in cgc
         for gate in moment
             add_vertex!(G)
-            push!(node_info, gate)
+            push!(nodeinfo, gate)
             for i in gate.iwire
                 LightGraphs.add_edge!(G, qubit_node[i], nv(G))
                 qubit_node[i] = nv(G)
             end
         end
     end
-    return G, node_info
+    return G, nodeinfo
 end
 
 """
@@ -69,7 +69,7 @@ Line graph of G.
 """
 function line_graph(G::Graph)
     LG = Graph()
-    node_info = []
+    nodeinfo = []
 
     # add nodes
     for i in 1:nv(G)
@@ -77,64 +77,41 @@ function line_graph(G::Graph)
         for j in neigh
             # add the node if not present
             edge = (i < j)  ? (i, j) : (j, i)
-            if edge ∉ node_info
+            if edge ∉ nodeinfo
                 add_vertex!(LG)
-                push!(node_info, edge)
+                push!(nodeinfo, edge)
             end
         end
     end
 
     # add edges
-    for (i, e1) in enumerate(node_info)
-        for (j, e2) in enumerate(node_info[i+1:end])
+    for (i, e1) in enumerate(nodeinfo)
+        for (j, e2) in enumerate(nodeinfo[i+1:end])
             common = e1 ∩ e2
             if length(common) > 0
                 LightGraphs.add_edge!(LG, i, j + i)
             end
         end
     end
-    return LG, node_info
+    return LG, nodeinfo
 end
 
-function line_graph(cgc::CircuitGateChain)
-    G, gateinfo = circuit_graph(cgc)
-    LG = Graph()
-    node_info = NTuple{3, Int64}[]
+"""
+    line_graph(net)
 
-    # add nodes
-    for i in 1:nv(G)
-        neigh = G.fadjlist[i]
-        for j in neigh[neigh .> i]
-            # get number of parallel edges
-            k = 1
-            if (typeof(gateinfo[i]) <: CircuitGate) & (typeof(gateinfo[j]) <: CircuitGate)
-                k = length(gateinfo[i].iwire ∩ gateinfo[j].iwire)
-            end
-            for e in 1:k
-                add_vertex!(LG)
-                push!(node_info, (i, j, e))
-            end
-        end
-    end
-
-    # add edges
-    for (i, e1) in enumerate(node_info)
-        for (j, e2) in enumerate(node_info[i+1:end])
-            common = (e1[1], e1[2]) ∩ (e2[1], e2[2])
-            if length(common) > 0
-                LightGraphs.add_edge!(LG, i, j + i)
-            end
-        end
-    end
-
-    LG, node_info
-end
-
+Line graph of a Tensor Network. Multiple edges between same nodes
+are represented as different nodes of the line_graph
+# Returns
+- `LG::Graph`: line graph without metainformation
+- `nodeinfo::Array{NTuple{3, Int64}}`: `nodeinfo[i] = (n1, n2, idx)` contains
+info about the contracted leg of `net` that is represented as node `i` of `LG`.
+Thus, `n1` and `n2` are the indices of the Tensors connected by `Summation[idx]`.
+"""
 function line_graph(net::TensorNetwork)
     G, edge_idx = network_graph(net)
 
     LG = Graph()
-    node_info = NTuple{3, Int64}[]
+    nodeinfo = NTuple{3, Int64}[]
 
     # add nodes
     for i in 1:nv(G)
@@ -143,21 +120,21 @@ function line_graph(net::TensorNetwork)
             # get number of parallel edges
             for e in edge_idx[(i, j)]
                 add_vertex!(LG)
-                push!(node_info, (i, j, e))
+                push!(nodeinfo, (i, j, e))
             end
         end
     end
 
     # add edges
-    for (i, e1) in enumerate(node_info)
-        for (j, e2) in enumerate(node_info[i+1:end])
+    for (i, e1) in enumerate(nodeinfo)
+        for (j, e2) in enumerate(nodeinfo[i+1:end])
             common = (e1[1], e1[2]) ∩ (e2[1], e2[2])
             if length(common) > 0
                 LightGraphs.add_edge!(LG, i, j + i)
             end
         end
     end
-    return LG, node_info
+    return LG, nodeinfo
 end
 
 
@@ -165,6 +142,9 @@ end
     interaction_graph(cgc)
 
 Interaction graph of a CircuitGateChain.
+# Returns
+- `G::Graph`: a graph with `N` nodes. Nodes `i` and `j` are connected iff
+there is a gate in `cgc` acting on both.
 """
 function interaction_graph(cgc::CircuitGateChain{N}) where N
     G = Graph(N)
@@ -210,7 +190,6 @@ function rem_vertex_fill!(G, i, ordering, vertex_label)
     if i ≤ nv(G)
         vertex_label[i] = v
     end
-    nothing
 end
 
 
@@ -384,7 +363,7 @@ end
 """
     contraction_order(cgc)
 
-Constructs a near optimal contracting order of cgc calling `tree_decomposition`,
+Constructs a near optimal contracting order of H calling `tree_decomposition`,
 following Theorem 4.6 of [Markov & Shi, Simulating quantum computation by contracting tensor networks](https://arxiv.org/abs/quant-ph/0511069.)
 """
 function contraction_order(H::Graph, edges::Array{NTuple{N,Int}, 1}) where N
@@ -419,17 +398,12 @@ function contraction_order(H::Graph, edges::Array{NTuple{N,Int}, 1}) where N
     contr_order
 end
 
-function contraction_order(cgc::CircuitGateChain)
-    H, edges = line_graph(cgc)
-    contraction_order(H, edges)
-end
-
 function contraction_order(net::TensorNetwork)
     _, edge_idx = network_graph(net)
     H, edges = line_graph(net)
     con_order = contraction_order(H, edges)
 
-    # add trace-like contractions at the beginning
+    # move trace-like contractions at the beginning
     auto_con = NTuple{3, Int}[]
     for i in 1:length(net.tensors)
         if (i, i) in keys(edge_idx)
@@ -442,8 +416,28 @@ function contraction_order(net::TensorNetwork)
     return [auto_con; con_order]
 end
 
+"""
+    optimize_contraction_order!(net)
+
+Optimize the contraction order for a TensorNetwork with a product input and
+projection onto an output state; as in the following example:
+
+1 □—————————————————□———————————□
+                    |
+2 □———————————□—————□—————□—————□
+              |           |
+3 □—————□———————————————————————□
+        |     |           |
+4 □—————□—————□———————————□—————□
+
+For TensorNetwork of different kinds this is not guaranteed to be optimal at all,
+since this algorithm works by keeping the dimension of the contracted tensors as
+small as possible (and this may be counterproductive in a network with open indices)
+"""
 function optimize_contraction_order!(net::TensorNetwork)
-    order = contraction_order(net)
-    perm = [t[3] for t in order]
+    (length(net.openidx) == 0) || @warn("For TensorNetworks with open indices the treewidth algorithm is unlikely to optimize the contraction time.")
+    new_order = contraction_order(net)
+    perm = [t[3] for t in new_order]
     net.contractions = net.contractions[perm]
+    nothing
 end

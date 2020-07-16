@@ -23,6 +23,10 @@ export
     tensor_circuit!
 
 include("contraction_order.jl")
+export
+    network_graph,
+    line_graph,
+    optimize_contraction_order!
 
 
 # re-export definitions from Qaintessent.jl
