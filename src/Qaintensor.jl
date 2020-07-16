@@ -15,9 +15,11 @@ export
     Summation,
     contract
 
-include("tensor_circuit.jl")
+include("helper.jl")
 export
-    tensor_circuit!
+    tn_to_ssa,
+    cgc_to_ssa,
+    decompose
 
 include("svd.jl")
 export
@@ -42,6 +44,13 @@ include("switch.jl")
 export
     switch!
 
+include("contract.jl")
+export
+    contract
+
+include("tensor_circuit.jl")
+export
+    tensor_circuit!
 # re-export definitions from Qaintessent.jl
 
 # gates

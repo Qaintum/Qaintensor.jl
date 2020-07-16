@@ -58,6 +58,7 @@ end
 
 
 function MPS(ψ::AbstractVector{ComplexF64})
+    # TODO: Should have more efficient way of decomposing (from center)
     is_power_two(length(ψ)) || error("Input state must have length 2^N")
     M = Integer(log(2, length(ψ)))
     # T = TensorNetwork([], [], [])
@@ -145,22 +146,4 @@ end
 function PeriodicMPS(T::Tensor, N::Integer)
     #translational invariant MPS
     return PeriodicMPS(fill(T, N))
-end
-
-"""
-    contract(tn::MPS, er::Real)
-
-tn: TensorNetwork. Must be provided in a MPS form, that is, tn.tensors have three legs,
-    tn.contractions are of the form[(T_i, 3), (T_i+1,1)]
-er: maximum error in the truncation done in an individual contraction
-"""
-function contract(tn::MPS; er::Real=0.0)
-
-    lchain = length(tn.tensors)
-    tcontract = tn.tensors[1]
-    k = length(size(tcontract)) - 2
-    for j in 2:lchain
-        tcontract = contract_svd(tcontract, tn.tensors[j], (j+k,1); er=er)
-    end
-    return tcontract.data
 end
