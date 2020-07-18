@@ -8,32 +8,6 @@ function ⊂(A,B)
 end
 
 """
-    circuit_graph(cgc)
-
-Graph of a CircuitGateChain using JuliaGraphs
-"""
-function circuit_graph(cgc::CircuitGateChain{N}) where N
-    G = Graph()
-    nodeinfo = Union{String, CircuitGate}[]
-    for i in 1:N
-        add_vertex!(G)
-        push!(nodeinfo, "q$i")
-    end
-    qubit_node = [1:N...]
-    for moment in cgc
-        for gate in moment
-            add_vertex!(G)
-            push!(nodeinfo, gate)
-            for i in gate.iwire
-                LightGraphs.add_edge!(G, qubit_node[i], nv(G))
-                qubit_node[i] = nv(G)
-            end
-        end
-    end
-    return G, nodeinfo
-end
-
-"""
     network_graph(net)
 
 Graph of TensorNetwork  `net` using JuliaGraphs. Returns the graph and
@@ -419,8 +393,8 @@ end
 """
     optimize_contraction_order!(net)
 
-Optimize the contraction order for a TensorNetwork with a product input and
-projection onto an output state; as in the following example:
+Optimize the contraction order for a TensorNetwork with a product state input and
+projection onto an product state as output; as in the following example:
 
 1 □—————————————————□———————————□
                     |

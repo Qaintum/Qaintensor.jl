@@ -34,7 +34,7 @@ We will test a tensor network of the following form
     2 □—————□ 3
 where each tensor is a 2x2 identity matrix.
 """
-A = [1. 0; 0 1]
+A = rand(ComplexF64, 2, 2)
 
 tensors = Tensor.([copy(A) for i in 1:4])
 contractions = Summation.([[1=>2, 2=>1],
@@ -84,14 +84,13 @@ end
 end
 
 @testset ExtendedTestSet "optimize contraction" begin
-
-
     # Test that the tensor network is essentially the same
     TN = copy(TN0)
     optimize_contraction_order!(TN)
     @test TN.tensors == TN0.tensors
     @test TN.openidx == TN0.openidx
     @test Set(TN.contractions) == Set(TN0.contractions)
+    @test contract(TN) ≈ contract(TN0)
 
     # Warning for tensor networks with open legs
     TN = copy(TN0)
@@ -99,5 +98,5 @@ end
     push!(TN.openidx, c.idx[1])
     push!(TN.openidx, c.idx[2])
 
-    @test_logs  (:warn, "For TensorNetworks with open indices the treewidth algorithm is unlikely to optimize the contraction time.")
+    @test_logs  (:warn, "For TensorNetworks with open indices the treewidth algorithm is unlikely to optimize performance.")
 end
