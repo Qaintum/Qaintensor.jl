@@ -22,7 +22,7 @@ include("tensor_circuit.jl")
 export
     tensor_circuit!
 
-include("contraction_order.jl")
+include("network2graph.jl")
 export
     network_graph,
     line_graph,
