@@ -60,7 +60,9 @@ using TensorOperations
 #     order = randperm(N)
 #
 #     ψ_ref = kron(b...)
+#
 #     ψ_perm = kron(b[order]...)
+#     println(order)
 #
 #     mps = MPS(ψ_ref)
 #     permute!(mps, order)
@@ -68,7 +70,7 @@ using TensorOperations
 #     ψ = contract(mps)
 #     @test ψ_perm ≈ reshape(ψ, (2^N,))
 # end
-#
+
 # @testset ExtendedTestSet "test permute MPS exceptions" begin
 #
 #     N = 6
@@ -174,56 +176,36 @@ using TensorOperations
 
 
 @testset ExtendedTestSet "closed_mps" begin
-    N = 4
+    N = 5
     T1 = Tensor(rand(2,3))
     T2 = Tensor(rand(3,2,4))
     T3 = Tensor(rand(4,2,5))
-    # T4 = Tensor(rand(5,2,4))
-    T5 = Tensor(rand(5,2))
-    # mps = ClosedMPS([T1,T2,T3,T4,T5])
-    mps = ClosedMPS([T1,T2,T3,T5])
-    mps2 = deepcopy(mps)
-    # switch!(mps2, 1, 2)
-    # ψ2 = contract(mps2)
-    # ψ = contract(mps)
-    # println(ψ2)
-    # println(ψ)
+    T4 = Tensor(rand(5,2,8))
+    T5 = Tensor(rand(8,2))
+    # mps = ClosedMPS([T1,T2,T5])
+    mps = ClosedMPS([T1,T2,T3,T4,T5])
+
     gmps = GeneralTensorNetwork(deepcopy(mps.tensors), deepcopy(mps.contractions), deepcopy(mps.openidx))
     #
-    cg1 = controlled_circuit_gate(4, 1, YGate(), N)
-    cg2 = controlled_circuit_gate(4, 1, YGate(), N)
+    cg1 = controlled_circuit_gate((1,5), 3, YGate(), N)
+    cg2 = controlled_circuit_gate((1,5), 3, YGate(), N)
     #
-    # # cg1 = single_qubit_circuit_gate(i, XGate(), N)
-    # # cg2 = single_qubit_circuit_gate(i, XGate(), N)
-    M = 2
+    M = 3
     d = 2
 
     cg_matrix = reshape(Qaintessent.matrix(cg1.gate), fill(d, 2*M)...)
 
-    # ref = [t.data for t in gmps.tensors]
-    # ψ_ref = ncon(ref, [[-1, 1], [1, -2, 2], [2, -3]])
-    # @test ψ_ref ≈ contract(mps)
-    #
-    # tensors = decompose(cg_matrix, M)
-    # contraction_indices = [[-1, -2, 4],[4, -3, -4, 5], [5, -6, -7]]
-    # println(ncon(tensors, contraction_indices))
-    # a = vcat(ref, tensors)
-
-    # contraction_indices = [[-1, 1], [1, 5, 2], [2, 6], [5, -2, 4], [4, 6, -3]]
-    # contraction_indices = [[7, 1], [1, 8, 2], [2, 9], [7, -2, 3], [3, 8, -4, 4], [4, 9, -6]]
-
-    # ψ_ans = ncon(a, contraction_indices)
-    # println(ψ_ans)
-
     tensor_circuit!(mps, cg1)
+    println(size.(mps.tensors))
     tensor_circuit!(gmps, cg2)
+    println(size.(gmps.tensors))
     # switch!(mps, 1,2)
     # println("Running contraction")
     ψ = contract(gmps)
-    println(ψ)
+    # println(ψ)
     # @test ψ ≈ ψ_ans
 
     ψ_ans = contract(mps)
-    println(ψ_ans)
+    # println(ψ_ans)
     @test ψ ≈ ψ_ans
 end
