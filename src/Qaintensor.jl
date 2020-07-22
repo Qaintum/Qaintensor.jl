@@ -11,7 +11,10 @@ export
 include("tensor_network.jl")
 export
     TensorNetwork,
-    Summation,
+    Summation
+
+include("contract.jl")
+export
     contract
 
 include("decompose.jl")
