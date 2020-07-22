@@ -1,32 +1,32 @@
-"""
-    cgc_to_ssa(cgc::CircuitGateChain{N})
-obtain static single assignment form of circuit gate chain as list of connected indices
-"""
-function cgc_to_ssa(cgc::CircuitGateChain{N}; expectation_value=false) where {N}
-    openidx = [1:N...]
-    index_list = [deepcopy(openidx)]
-    new_wire = N+1
-    leg_costs = Dict()
-
-    for moment in cgc
-        for cg in moment
-            gate_index = []
-            for wire in sort([cg.iwire...])
-                push!(gate_index, openidx[wire])
-                push!(gate_index, new_wire)
-                openidx[wire] = new_wire
-                new_wire += 1
-            end
-            push!(index_list, sort(gate_index))
-        end
-    end
-    push!(index_list, deepcopy(openidx))
-    leg_costs = Dict{Int,Int}()
-    for i in 1:new_wire-1
-        leg_costs[i] = 2
-    end
-    index_list, leg_costs
-end
+# """
+#     cgc_to_ssa(cgc::CircuitGateChain{N})
+# obtain static single assignment form of circuit gate chain as list of connected indices
+# """
+# function cgc_to_ssa(cgc::CircuitGateChain{N}; expectation_value=false) where {N}
+#     openidx = [1:N...]
+#     index_list = [deepcopy(openidx)]
+#     new_wire = N+1
+#     leg_costs = Dict()
+#
+#     for moment in cgc
+#         for cg in moment
+#             gate_index = []
+#             for wire in sort([cg.iwire...])
+#                 push!(gate_index, openidx[wire])
+#                 push!(gate_index, new_wire)
+#                 openidx[wire] = new_wire
+#                 new_wire += 1
+#             end
+#             push!(index_list, sort(gate_index))
+#         end
+#     end
+#     push!(index_list, deepcopy(openidx))
+#     leg_costs = Dict{Int,Int}()
+#     for i in 1:new_wire-1
+#         leg_costs[i] = 2
+#     end
+#     index_list, leg_costs
+# end
 
 """
     tn_to_ssa(net::TensorNetwork)
@@ -40,23 +40,23 @@ function tn_to_ssa(net::TensorNetwork)
 
     for (i, ts) in enumerate(net.contractions)
         for j in ts.idx
-            @assert 1 ≤ j.second ≤ ndims(net.tensors[j.first])
+            1 ≤ j.second ≤ ndims(net.tensors[j.first]) ||
+                error("Unable to contract Tensor " * string(j.first) * " with dimension " * string(ndims(net.tensors[j.first])) * " along dimension " * string(j.second))
             indexlist[j.first][j.second] = i
             leg_costs[i] = size(net.tensors[j.first])[j.second]
         end
     end
     j = length(net.contractions)
     for (i, oi) in enumerate(net.openidx)
-        # tensor leg must not participate in a contraction
-        @assert indexlist[oi.first][oi.second] == 0
+        indexlist[oi.first][oi.second] == 0 || error("Tensor " * string(oi.first) * " leg " * string(oi.second) * " in openidx must not participate in a contraction")
         # last qubit corresponds to fastest varying index
         indexlist[oi.first][oi.second] = i - length(net.openidx) - 1 - j
         leg_costs[abs(i - length(net.openidx) - 1 -j)] = size(net.tensors[oi.first])[oi.second]
         push!(openidx, i - length(net.openidx) - 1 - j)
     end
     # consistency check
-    for idx in indexlist, i in idx
-        @assert i != 0
+    for (i,idx) in enumerate(indexlist), j in idx
+        j != 0 || error("All legs in Tensor " * string(i) * " must be involved in a contraction or be indicated as an open leg")
     end
 
     return indexlist, leg_costs, openidx
@@ -65,11 +65,11 @@ end
 """
     decompose(m::AbstractArray, M::Int)
 
-breaks a large circuit gate into a vector of Tensor objects
+breaks a large matrix into a vector of small tensors using repeated svd decompositions
 """
 
 function decompose(m::AbstractArray, M::Int)
-    2^2M == length(m) || error("m should be of length " *string(2^M))
+    2^2M == length(m) || error("m should be of length " * string(2^M))
 
     dims = Integer[]
     for i in 1:M

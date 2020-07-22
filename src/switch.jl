@@ -62,7 +62,6 @@ swaps wire positions `i` and `j` in MPS object. this implementation does swaps o
 """
 function switch!(mps::MPS, i::Integer, j::Integer)
     check_mps(mps)
-    println("Swapping " * string(i) * " and " * string(j))
     i > 0 && j > 0 || error("Wire indices `i` and `j` must be positive")
     (i <= length(mps.tensors)) & (j <= length(mps.tensors)) || error("Indices to swap `i` and `j` must be less than or equal to the number of open wires in MPS")
 
