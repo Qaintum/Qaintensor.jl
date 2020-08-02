@@ -1,7 +1,8 @@
 using Test
 using TestSetExtensions
 using Qaintensor
-using Qaintensor: tree_decomposition, is_tree_decomposition
+using Qaintensor: tree_decomposition, is_tree_decomposition, ⊂,
+        interaction_graph, lacking_for_clique_neigh, rem_vertex_fill!
 using LightGraphs
 
 Base.copy(net::TensorNetwork) = TensorNetwork(copy(net.tensors), copy(net.contractions), copy(net.openidx))
@@ -44,17 +45,53 @@ contractions = Summation.([[1=>2, 2=>1],
 openidx = Pair[]
 TN0 = TensorNetwork(tensors, contractions, openidx)
 
+@testset ExtendedTestSet "subset function" begin
+    A = [1,2,3]
+    B = [1,2,3,4]
+
+    @test A ⊂ B
+    @test !(B ⊂ A)
+end
+
 
 @testset ExtendedTestSet "network_graph" begin
     G, _ = network_graph(TN0)
     @test prod(length.(G.fadjlist) .== 2) # all vertices have 2 neighbors
 
     LG, _ = line_graph(TN0)
-    @test prod(length.(LG.fadjlist) .== 2) # they are isomorphic
+    @test prod(length.(LG.fadjlist) .== 2) # in this case G and LG are isomorphic
+
+    # test error throw for contractions of more than two legs
+    TN = copy(TN0)
+    TN.contractions = [Summation([1=>2, 2=>1, 2=>2, 3=>1]),
+                       Summation([3=>2, 4=>1, 4=>2, 1=>1])]
+    @test_throws ErrorException network_graph(TN)
+
+    # the interaction graph of the qft is the complete graph
+    N = 10
+    cgc = qft_circuit(N)
+    G = interaction_graph(cgc)
+    @test ne(G) == N*(N-1)/2
 end
 
 
 @testset ExtendedTestSet "tree decomposition" begin
+
+    # test `lacking_for_clique_neigh` function
+    G = complete_graph(5)
+    @test (0,[]) == lacking_for_clique_neigh(G,1)
+    rem_edge!(G,2,3)
+    @test (1,[(2,3)]) == lacking_for_clique_neigh(G,1)
+
+    # test rem_vertex_fill!,that eliminates vertices in the graph and fills
+    # their neighborhood
+    ordering = Int[]
+    vertex_label = [1, 2, 3, 4, 5]
+    rem_vertex_fill!(G, 1, [(2,3)], ordering, vertex_label)
+
+    @test G == complete_graph(4)
+    @test ordering == [1]
+    @test vertex_label == [5, 2, 3, 4]
 
     # test for complete graph
     # A complete graph has itself as its only chordal completion.
@@ -90,7 +127,7 @@ end
     @test TN.tensors == TN0.tensors
     @test TN.openidx == TN0.openidx
     @test Set(TN.contractions) == Set(TN0.contractions)
-    @test contract(TN) ≈ contract(TN0)
+    @test Qaintensor.contract(TN) ≈ Qaintensor.contract(TN0)
 
     # Warning for tensor networks with open legs
     TN = copy(TN0)

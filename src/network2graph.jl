@@ -17,11 +17,11 @@ the indices of `net.contractions` that involve them.
 function network_graph(net::TensorNetwork)
     M = length(net.tensors)
     G = Graph(M)
-    edge_idx = Dict{Tuple, Array{Int,1}}()
+    edge_idx = Dict{Tuple{Int,Int}, Array{Int,1}}()
 
-    for (k,s) in enumerate(net.contractions)
+    for (k, s) in enumerate(net.contractions)
         length(s.idx) == 2 || error("Contractions of more than 2 tensors not supported")
-        i, j = s.idx[1].first, s.idx[2].first
+        i::Int, j::Int = s.idx[1].first, s.idx[2].first
         i ≤ j ? nothing : (i, j) = (j, i)
         LightGraphs.add_edge!(G, i, j)
 
@@ -140,11 +140,11 @@ end
 Finds the edges that are lacking to `G` for the neighborhood of vertex `i`
 to be a clique. Returns this number of edges and the edges themselves.
 """
-function lacking_for_clique_neigh(G, i)
+function lacking_for_clique_neigh(G::Graph, i::Int)
     neigh = G.fadjlist[i]
     lacking = Tuple{Int,Int}[]
-    for (j, i1) in enumerate(neigh)
-        for i2 in neigh[1:j-1]
+    for (j, i2) in enumerate(neigh)
+        for i1 in neigh[1:j-1]
             has_edge(G, i1, i2) ? nothing : push!(lacking, (i1, i2))
         end
     end
@@ -152,12 +152,21 @@ function lacking_for_clique_neigh(G, i)
 end
 
 """
-    rem_vertex_fill!(G, i, ordering, vertex_label)
+    rem_vertex_fill!(G, i, lacking, ordering, vertex_label)
 
-Removes vertex `i` of `G`, pushes it to `ordering` and updates `vertex_label`
-(LightGraphs moves the vertices when one is removed).
+Fills `G` with the lacking edges for the neighborhood of `i` to be a clique,
+removes vertex `i` of `G`, pushes it to `ordering` and updates `vertex_label`.
+LightGraphs changes the order of the vertices when one is removed like this:
+
+removed                  moved
+   |                       |
+  [v1    v2    v3    v4    v5]    -->    [v5    v2    v3    v4]
 """
-function rem_vertex_fill!(G, i, ordering, vertex_label)
+function rem_vertex_fill!(G::Graph, i::Int, lacking::Vector{Tuple{Int,Int}},
+                          ordering::Vector{Int}, vertex_label)
+    for e in lacking
+        LightGraphs.add_edge!(G, e[1], e[2])
+    end
     push!(ordering, vertex_label[i])
     rem_vertex!(G, i)
     v = pop!(vertex_label)
@@ -175,24 +184,25 @@ Find an ordering of the vertices of `G` using the min-fill heuristic
 """
 function min_fill_ordering(G::Graph)
     H = copy(G)
-    ordering = []
+    ordering = Int[]
+    no_lacking = Tuple{Int,Int}[] # to pass when there is no edge lacking
     vertex_label = collect(1:nv(H))
     while nv(H) > 0
         success = false
         for i in nv(H):-1:1
             if length(H.fadjlist[i]) == 0
-                rem_vertex_fill!(H, i, ordering, vertex_label)
+                rem_vertex_fill!(H, i, no_lacking, ordering, vertex_label)
                 success = true
             end
         end
         for i in nv(H):-1:1
             if length(H.fadjlist[i]) == 1
-                rem_vertex_fill!(H, i, ordering, vertex_label)
+                rem_vertex_fill!(H, i, no_lacking, ordering, vertex_label)
                 success = true
             end
         end
 
-        if success == false
+        if ! success
             degrees = length.(H.fadjlist)
             J = sortperm(degrees)
 
@@ -204,7 +214,7 @@ function min_fill_ordering(G::Graph)
                 j = J[i]
                 n_lacking, lacking = lacking_for_clique_neigh(H, j)
                 if n_lacking == 0
-                    rem_vertex_fill!(H, j, ordering, vertex_label)
+                    rem_vertex_fill!(H, j, lacking, ordering, vertex_label)
                     found_clique = true
                     break
                 elseif n_lacking < best_n_lacking
@@ -215,10 +225,7 @@ function min_fill_ordering(G::Graph)
             end
             # if running until here, remove v
             if ! found_clique
-                for e in best_lacking
-                    LightGraphs.add_edge!(H, e[1], e[2])
-                end
-                rem_vertex_fill!(H, v, ordering, vertex_label)
+                rem_vertex_fill!(H, v, best_lacking, ordering, vertex_label)
             end
         end
     end
@@ -342,7 +349,7 @@ following Theorem 4.6 of [Markov & Shi, Simulating quantum computation by contra
 """
 function contraction_order(H::Graph, edges::Array{NTuple{N,Int}, 1}) where N
     tw, tree, bags = tree_decomposition(H)
-    contr_order = []
+    contr_order = NTuple{N,Int}[]
     degrees = length.(tree.fadjlist)
     while maximum(degrees) > 0
         leaves_idx = findall(degrees .== 1)
@@ -377,7 +384,8 @@ function contraction_order(net::TensorNetwork)
     H, edges = line_graph(net)
     con_order = contraction_order(H, edges)
 
-    # move trace-like contractions at the beginning
+    # trace-like contractions where not taken into account;
+    # move them to the beginning
     auto_con = NTuple{3, Int}[]
     for i in 1:length(net.tensors)
         if (i, i) in keys(edge_idx)
@@ -393,8 +401,10 @@ end
 """
     optimize_contraction_order!(net)
 
-Optimize the contraction order for a TensorNetwork with a product state input and
-projection onto an product state as output; as in the following example:
+Optimize the contraction order for a TensorNetwork with no open legs.
+The original paper [Markov & Shi, Simulating quantum computation by contracting tensor networks](https://arxiv.org/abs/quant-ph/0511069.)
+considers circuits with a product state input and projection onto an
+product state as output; as in the following example:
 
 1 □—————————————————□———————————□
                     |
@@ -404,9 +414,12 @@ projection onto an product state as output; as in the following example:
         |     |           |
 4 □—————□—————□———————————□—————□
 
-For TensorNetwork of different kinds this is not guaranteed to be optimal at all,
-since this algorithm works by keeping the dimension of the contracted tensors as
-small as possible (and this may be counterproductive in a network with open indices)
+We see a great time saving also for MPS type circuits, **as long as no leg
+remains uncontracted** (for example, the output is projected into another MPS).
+
+For TensorNetwork with open legs this algorithm is unlikely to provide good
+results, since it works by keeping the dimension of the contracted tensors as
+small as possible (and this proves to be counterproductive in a network with open legs).
 """
 function optimize_contraction_order!(net::TensorNetwork)
     (length(net.openidx) == 0) || @warn("For TensorNetworks with open indices the treewidth algorithm is unlikely to optimize the contraction time.")
