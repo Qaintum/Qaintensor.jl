@@ -28,6 +28,20 @@ function local_circuit_graph(N, k)
     return G
 end
 
+function random_TN(Nn, Ne)
+    nlegs = zeros(Int, Nn)
+    contractions = Summation[]
+    for j in 1:Ne
+        n1 = rand(1:Nn-1)
+        n2 = rand(n1+1:Nn)
+        nlegs[n1] += 1
+        nlegs[n2] += 1
+        push!(contractions, Summation([n1 => nlegs[n1], n2 => nlegs[n2]]))
+    end
+    tensors = [Tensor(rand(fill(2, n)...)) for n in nlegs]
+    return TensorNetwork(tensors, contractions, Pair{Integer,Integer}[])
+end
+
 """
 We will test a tensor network of the following form
     1 □—————□ 4
@@ -67,7 +81,23 @@ end
                        Summation([3=>2, 4=>1, 4=>2, 1=>1])]
     @test_throws ErrorException network_graph(TN)
 
-    # the interaction graph of the qft is the complete graph
+    ## Random TN:
+    # check that the nodeinfo is composed of the tuples `(i,j,k)`, where `i`
+    # and `j` are the tensors connected by the k-th sumation of the TN
+    for i in 1:5
+        TN = random_TN(5,15)
+        LG, nodeinfo = line_graph(TN)
+        net_cont = Tuple{Int, Int, Int}[]
+        for (k, con) in enumerate(TN.contractions)
+            (i,j) = (con.idx[1].first, con.idx[2].first)
+            i < j ? nothing : (i,j) = (j,i)
+            push!(net_cont, (i,j,k))
+        end
+        @test Set(nodeinfo) == Set(net_cont)
+    end
+
+    ## Interaction graph:
+    # Interaction graph of the qft circuit is a complete graph
     N = 10
     cgc = qft_circuit(N)
     G = interaction_graph(cgc)
@@ -83,7 +113,7 @@ end
     rem_edge!(G,2,3)
     @test (1,[(2,3)]) == lacking_for_clique_neigh(G,1)
 
-    # test rem_vertex_fill!,that eliminates vertices in the graph and fills
+    # test rem_vertex_fill!, that eliminates vertices in the graph and fills
     # their neighborhood
     ordering = Int[]
     vertex_label = [1, 2, 3, 4, 5]
