@@ -2,16 +2,26 @@ using Test
 using TestSetExtensions
 using Qaintensor
 using Qaintensor: tree_decomposition, is_tree_decomposition, ⊂,
-        interaction_graph, lacking_for_clique_neigh, rem_vertex_fill!
+        interaction_graph, lacking_for_clique_neigh, rem_vertex_fill!,
+        min_fill_ordering, triangulation
 using LightGraphs
+
+# for extensive check of the random tests change the following parameter
+samples_per_test = 1
+
 
 Base.copy(net::TensorNetwork) = TensorNetwork(copy(net.tensors), copy(net.contractions), copy(net.openidx))
 
+"""
+    random_graph(Nn, Ne)
+
+Random graph with Nn nodes and at most Ne edges (multiedges are not supported)
+"""
 function random_graph(Nn, Ne)
     G = Graph(Nn)
     for j in 1:Ne
         n1 = rand(1:Nn-1)
-        n2 = rand(n1:Nn)
+        n2 = rand(n1+1:Nn)
         add_edge!(G, n1, n2)
     end
     return G
@@ -28,6 +38,11 @@ function local_circuit_graph(N, k)
     return G
 end
 
+"""
+    random_TN(Nn, Ne)
+
+Random TensorNetwork with Nn nodes and Ne legs
+"""
 function random_TN(Nn, Ne)
     nlegs = zeros(Int, Nn)
     contractions = Summation[]
@@ -38,7 +53,7 @@ function random_TN(Nn, Ne)
         nlegs[n2] += 1
         push!(contractions, Summation([n1 => nlegs[n1], n2 => nlegs[n2]]))
     end
-    tensors = [Tensor(rand(fill(2, n)...)) for n in nlegs]
+    tensors = Tensor.([n > 0 ? rand(fill(2, n)...) : rand(1) for n in nlegs])
     return TensorNetwork(tensors, contractions, Pair{Integer,Integer}[])
 end
 
@@ -59,6 +74,7 @@ contractions = Summation.([[1=>2, 2=>1],
 openidx = Pair[]
 TN0 = TensorNetwork(tensors, contractions, openidx)
 
+
 @testset ExtendedTestSet "subset function" begin
     A = [1,2,3]
     B = [1,2,3,4]
@@ -66,7 +82,6 @@ TN0 = TensorNetwork(tensors, contractions, openidx)
     @test A ⊂ B
     @test !(B ⊂ A)
 end
-
 
 @testset ExtendedTestSet "network_graph" begin
     G, _ = network_graph(TN0)
@@ -82,10 +97,10 @@ end
     @test_throws ErrorException network_graph(TN)
 
     ## Random TN:
-    # check that the nodeinfo is composed of the tuples `(i,j,k)`, where `i`
-    # and `j` are the tensors connected by the k-th sumation of the TN
-    for i in 1:5
-        TN = random_TN(5,15)
+    # check that the nodeinfo is composed of the tuples `(i,j,k)`, where
+    # `i` and `j` are the tensors connected by the k-th sumation of the TN
+    for i in 1:samples_per_test
+        TN = random_TN(10,20)
         LG, nodeinfo = line_graph(TN)
         net_cont = Tuple{Int, Int, Int}[]
         for (k, con) in enumerate(TN.contractions)
@@ -101,19 +116,19 @@ end
     N = 10
     cgc = qft_circuit(N)
     G = interaction_graph(cgc)
-    @test ne(G) == N*(N-1)/2
+    @test G == complete_graph(N)
 end
 
 
-@testset ExtendedTestSet "tree decomposition" begin
+@testset ExtendedTestSet "tree decomposition subroutines" begin
 
-    # test `lacking_for_clique_neigh` function
+    ## test `lacking_for_clique_neigh` function
     G = complete_graph(5)
     @test (0,[]) == lacking_for_clique_neigh(G,1)
     rem_edge!(G,2,3)
     @test (1,[(2,3)]) == lacking_for_clique_neigh(G,1)
 
-    # test rem_vertex_fill!, that eliminates vertices in the graph and fills
+    ##  `rem_vertex_fill!`: that eliminates vertices in the graph and fills
     # their neighborhood
     ordering = Int[]
     vertex_label = [1, 2, 3, 4, 5]
@@ -123,23 +138,38 @@ end
     @test ordering == [1]
     @test vertex_label == [5, 2, 3, 4]
 
-    # test for complete graph
+    ## `triangulation`: from a graph and an ordering we get a chordal completion
+    # (i. e. for every n-cycle (n>3) there is a 3-cycle that traverses
+    # only three of the original nodes)
+    # since enumerating the cycles on a graph grows faster than
+    # exponentially in the number of edges, the parameters must be kept small
+    for i in 1:samples_per_test
+        Nn = rand(4:8)
+        Ni = rand(2:2:Nn-1)
+        G = random_regular_graph(Nn, Ni)
+        ordering = min_fill_ordering(G)
+        H = triangulation(G, ordering)
+
+        dg = DiGraph(H) # cycle enumerating only works on digraphs
+        cycles = simplecycles(dg)
+        length_3_cycles = cycles[length.(cycles) .== 3]
+        success = true
+        for cycle in cycles[length.(cycles) .> 3]
+            success = success & any(map(x -> x ⊂ cycle, length_3_cycles))
+        end
+        @test success
+    end
+end
+
+@testset ExtendedTestSet "tree decomposition" begin
+    ## tree decomposition of a complete graph
     # A complete graph has itself as its only chordal completion.
     # Since the min_fill_ordering works by constructing a chordal completion,
-    # and for complete graphs there is only one, the approximated treewidth is tight.
+    # and for complete graphs there is only one, the approximated treewidth is exact.
     for n in [10, 25, 50]
         G = complete_graph(n)
         tw, _ = tree_decomposition(G)
         @test tw == n-1
-    end
-
-    # test for validity of the tree decomposition
-    for i in 1:5
-        Nn = rand(20:50)
-        Ne = rand(2*Nn:10*Nn)
-        G = random_graph(Nn, Ne)
-        tw, tree, bags = tree_decomposition(G)
-        @test is_tree_decomposition(G, tree, bags)
     end
 
     # test treewidth of local circuit graph (heuristic should generate an optimal tree decomposition)
@@ -148,6 +178,84 @@ end
         tw, _ = tree_decomposition(IG)
         @test tw == n-1
     end
+end
+
+@testset ExtendedTestSet "tree decomposition validation" begin
+
+
+    # We consider the following graph and tree decomposition
+    #    5
+    #  /   \            tree                   [2, 3, 4]
+    # 4 ——— 3            -->                    /     \
+    # |     |       decomposition       [2, 4, 1]     [3, 4, 5]
+    # 1 ——— 2
+
+
+    # `ìs_tree_decomposition`: validates tree decompositions
+    G = Graph(5)
+    add_edge!(G, 1, 2)
+    add_edge!(G, 1, 4)
+    add_edge!(G, 2, 3)
+    add_edge!(G, 4, 3)
+    add_edge!(G, 5, 3)
+    add_edge!(G, 4, 5)
+
+    tree = Graph(3)
+    add_edge!(tree, 1, 2)
+    add_edge!(tree, 1, 3)
+
+    bags = [[2, 3, 4],
+            [2, 4, 1],
+            [3, 4, 5]]
+
+    @test is_tree_decomposition(G, tree, bags)
+
+    # removing node 1 of the second bag leads to an invalid
+    # tree decomposition (not all vertices present)
+    bags = [[2, 3, 4],
+            [2, 4],
+            [3, 4, 5]]
+
+    @test ! (@test_logs (:warn, "Union of bags is not equal to union of vertices") is_tree_decomposition(G, tree, bags))
+
+
+    # deleting node 2 of the first bag leads to an invalid
+    # tree decomposition (edge (2, 3) not contained in any bag)
+    bags = [[3, 4],
+            [2, 4, 1],
+            [3, 4, 5]]
+    e = (2,3)
+    @test ! (@test_logs (:warn, "Edge $e not found in any bag") is_tree_decomposition(G, tree, bags))
+
+    # removing node 4 of the first bag leads to an invalid
+    # tree decomposition (subgraph for vertex 4 not connected)
+    bags = [[2, 3],
+            [2, 4, 1],
+            [3, 4, 5]]
+
+    @test ! (@test_logs (:warn, "Subgraph for vertex 4 not connected") is_tree_decomposition(G, tree, bags))
+
+
+    # validate tree decomposition algorithm on random graphs
+    for i in 1:samples_per_test
+        Nn = rand(20:50)
+        Ne = rand(2*Nn:10*Nn)
+        G = random_graph(Nn, Ne)
+        tw, tree, bags = tree_decomposition(G)
+        @test is_tree_decomposition(G, tree, bags)
+    end
+
+    # on random TN
+    nodes_and_legs = [(20,5), (10,10), (10,20), (30,60)]
+    for (Nn, Ne) in nodes_and_legs
+        for i in 1:samples_per_test
+            TN = random_TN(Nn, Ne)
+            H, _ = line_graph(TN)
+            tw, tree, bags = tree_decomposition(H)
+            @test is_tree_decomposition(H, tree, bags)
+        end
+    end
+
 end
 
 @testset ExtendedTestSet "optimize contraction" begin
@@ -165,5 +273,5 @@ end
     push!(TN.openidx, c.idx[1])
     push!(TN.openidx, c.idx[2])
 
-    @test_logs  (:warn, "For TensorNetworks with open indices the treewidth algorithm is unlikely to optimize performance.")
+    @test_logs  (:warn, "For TensorNetworks with open indices the treewidth algorithm is unlikely to optimize performance.") optimize_contraction_order!(TN)
 end

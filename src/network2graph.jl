@@ -235,7 +235,8 @@ end
 """
     triangulation(G, ordering)
 
-For each vertex add edges between its higher numbered neighbors
+Chordal completion of `G` following order `ordering`.
+For each vertex add edges between its higher numbered neighbors.
 """
 function triangulation(G, ordering)
     H = copy(G)
@@ -304,7 +305,7 @@ Checks if `(tree, bags)` forms a tree decomposition of `G`.
 function is_tree_decomposition(G, tree, bags)
     # 1. check union property
     if sort(∪(bags...)) != collect(1:nv(G))
-        @warn ("Union on bags is not equal to union of vertices")
+        @warn ("Union of bags is not equal to union of vertices")
         return false
     end
 
@@ -316,7 +317,7 @@ function is_tree_decomposition(G, tree, bags)
             edge_found = edge_found | (e ⊂ B)
         end
         if ! edge_found
-            @warn("Some edge not found in any bag")
+            @warn("Edge $e not found in any bag")
             return false
         end
     end
@@ -422,7 +423,7 @@ results, since it works by keeping the dimension of the contracted tensors as
 small as possible (and this proves to be counterproductive in a network with open legs).
 """
 function optimize_contraction_order!(net::TensorNetwork)
-    (length(net.openidx) == 0) || @warn("For TensorNetworks with open indices the treewidth algorithm is unlikely to optimize the contraction time.")
+    (length(net.openidx) == 0) || @warn("For TensorNetworks with open indices the treewidth algorithm is unlikely to optimize performance.")
     new_order = contraction_order(net)
     perm = [t[3] for t in new_order]
     net.contractions = net.contractions[perm]
