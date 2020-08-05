@@ -80,8 +80,10 @@ are represented as different nodes of the line_graph
 - `nodeinfo::Array{NTuple{3, Int64}}`: `nodeinfo[i] = (n1, n2, idx)` contains
 info about the contracted leg of `net` that is represented as node `i` of `LG`.
 Thus, `n1` and `n2` are the indices of the Tensors connected by `Summation[idx]`.
+All open indices are disregarded.
 """
 function line_graph(net::TensorNetwork)
+    (length(net.openidx) == 0) || @warn("All open indices are disregarded")
     G, edge_idx = network_graph(net)
 
     LG = Graph()
@@ -380,6 +382,11 @@ function contraction_order(H::Graph, edges::Array{NTuple{N,Int}, 1}) where N
     contr_order
 end
 
+"""
+    contraction_order(net)
+
+Return a near-optimal contraction order `net`
+"""
 function contraction_order(net::TensorNetwork)
     _, edge_idx = network_graph(net)
     H, edges = line_graph(net)
@@ -417,13 +424,15 @@ product state as output; as in the following example:
 
 We see a great time saving also for MPS type circuits, **as long as no leg
 remains uncontracted** (for example, the output is projected into another MPS).
+The size of all legs of the original tensor should be roughly the same for
+getting good performance (no different orders of magnitude)
 
 For TensorNetwork with open legs this algorithm is unlikely to provide good
 results, since it works by keeping the dimension of the contracted tensors as
 small as possible (and this proves to be counterproductive in a network with open legs).
 """
 function optimize_contraction_order!(net::TensorNetwork)
-    (length(net.openidx) == 0) || @warn("For TensorNetworks with open indices the treewidth algorithm is unlikely to optimize performance.")
+    (length(net.openidx) == 0) || @warn("For TensorNetworks with open indices the treewidth algorithm is unlikely to optimize performance")
     new_order = contraction_order(net)
     perm = [t[3] for t in new_order]
     net.contractions = net.contractions[perm]

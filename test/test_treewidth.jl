@@ -6,7 +6,7 @@ using Qaintensor: tree_decomposition, is_tree_decomposition, ⊂,
         min_fill_ordering, triangulation
 using LightGraphs
 
-# for extensive check of the random tests change the following parameter
+# for extensive check of the random tests increase the following parameter
 samples_per_test = 1
 
 
@@ -96,7 +96,7 @@ end
                        Summation([3=>2, 4=>1, 4=>2, 1=>1])]
     @test_throws ErrorException network_graph(TN)
 
-    ## Random TN:
+    ## Random TN line_graph
     # check that the nodeinfo is composed of the tuples `(i,j,k)`, where
     # `i` and `j` are the tensors connected by the k-th sumation of the TN
     for i in 1:samples_per_test
@@ -110,6 +110,13 @@ end
         end
         @test Set(nodeinfo) == Set(net_cont)
     end
+
+    # Warning for tensor networks with open legs
+    TN = copy(TN0)
+    c = pop!(TN.contractions)
+    push!(TN.openidx, c.idx[1])
+    push!(TN.openidx, c.idx[2])
+    @test_logs  (:warn, "All open indices are disregarded") line_graph(TN)
 
     ## Interaction graph:
     # Interaction graph of the qft circuit is a complete graph
@@ -138,15 +145,15 @@ end
     @test ordering == [1]
     @test vertex_label == [5, 2, 3, 4]
 
-    ## `triangulation`: from a graph and an ordering we get a chordal completion
+    ## `triangulation`: from a graph and an ordering get a chordal completion
     # (i. e. for every n-cycle (n>3) there is a 3-cycle that traverses
     # only three of the original nodes)
     # since enumerating the cycles on a graph grows faster than
     # exponentially in the number of edges, the parameters must be kept small
     for i in 1:samples_per_test
         Nn = rand(4:8)
-        Ni = rand(2:2:Nn-1)
-        G = random_regular_graph(Nn, Ni)
+        Ne = rand(Nn:(Nn*(Nn-1))÷2)
+        G = random_graph(Nn, Ne)
         ordering = min_fill_ordering(G)
         H = triangulation(G, ordering)
 
@@ -245,8 +252,8 @@ end
         @test is_tree_decomposition(G, tree, bags)
     end
 
-    # on random TN
-    nodes_and_legs = [(20,5), (10,10), (10,20), (30,60)]
+    # validate tree decomposition for line graph of random TN
+    nodes_and_legs = [(10,10), (10,20), (10,50), (30,60)]
     for (Nn, Ne) in nodes_and_legs
         for i in 1:samples_per_test
             TN = random_TN(Nn, Ne)
@@ -259,6 +266,9 @@ end
 end
 
 @testset ExtendedTestSet "optimize contraction" begin
+
+    ## Contraction order:
+
     # Test that the tensor network is essentially the same
     TN = copy(TN0)
     optimize_contraction_order!(TN)
@@ -272,6 +282,21 @@ end
     c = pop!(TN.contractions)
     push!(TN.openidx, c.idx[1])
     push!(TN.openidx, c.idx[2])
+    @test_logs  (:warn, "For TensorNetworks with open indices the treewidth algorithm is unlikely to optimize performance") (:warn, "All open indices are disregarded") optimize_contraction_order!(TN)
 
-    @test_logs  (:warn, "For TensorNetworks with open indices the treewidth algorithm is unlikely to optimize performance.") optimize_contraction_order!(TN)
+    # Test on random TN
+    nodes_and_legs = [(10,10), (10,20), (10,50), (30,60)]
+    for (Nn, Ne) in nodes_and_legs
+        for i in 1:samples_per_test
+            net0 = random_TN(Nn, Ne)
+            net = copy(net0)
+            optimize_contraction_order!(net)
+            @test net.tensors == net0.tensors
+            @test net.openidx == net0.openidx
+            @test Set(net.contractions) == Set(net0.contractions)
+        end
+    end
+
+    # Test on expectation-valued MPS
+    # TODO: add a test like the one above for MPS
 end
