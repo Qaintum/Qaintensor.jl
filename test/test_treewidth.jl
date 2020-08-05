@@ -1,10 +1,11 @@
 using Test
 using TestSetExtensions
+using LightGraphs
 using Qaintensor
 using Qaintensor: tree_decomposition, is_tree_decomposition, ⊂,
         interaction_graph, lacking_for_clique_neigh, rem_vertex_fill!,
-        min_fill_ordering, triangulation
-using LightGraphs
+        min_fill_ordering, triangulation, contraction_order, contract
+using Qaintessent
 
 # for extensive check of the random tests increase the following parameter
 samples_per_test = 1
@@ -81,20 +82,37 @@ TN0 = TensorNetwork(tensors, contractions, openidx)
 
     @test A ⊂ B
     @test !(B ⊂ A)
+
+    # works for all iterable objects
+    @test (1,2) ⊂ A
+    @test A ⊂ (1,2,3,4)
+    @test 1 ⊂ A
+    @test 1:3 ⊂ A
+    @test "ba" ⊂ "abc"
+
+    # doesn't work for non-iterable objects
+    @test_throws MethodError (XGate() ⊂ XGate())
 end
 
 @testset ExtendedTestSet "network_graph" begin
     G, _ = network_graph(TN0)
-    @test prod(length.(G.fadjlist) .== 2) # all vertices have 2 neighbors
-
-    LG, _ = line_graph(TN0)
-    @test prod(length.(LG.fadjlist) .== 2) # in this case G and LG are isomorphic
+    @test (nv(G) == 4) & prod(length.(G.fadjlist) .== 2) # the graph is a square
 
     # test error throw for contractions of more than two legs
     TN = copy(TN0)
     TN.contractions = [Summation([1=>2, 2=>1, 2=>2, 3=>1]),
                        Summation([3=>2, 4=>1, 4=>2, 1=>1])]
-    @test_throws ErrorException network_graph(TN)
+    @test_throws ErrorException("Contractions of more than 2 tensors not supported") network_graph(TN)
+
+    # test line_graph
+    LG, _ = line_graph(G)
+    @test (nv(LG) == 4) & prod(length.(LG.fadjlist) .== 2) # in this case G and LG are isomorphic
+
+    # test line_graph for tensor networks
+    # for tensor networks with only one leg between each pair of tensors
+    # the result should be the same
+    LG0, _ = line_graph(TN0)
+    @test (nv(LG0) == 4) & prod(length.(LG0.fadjlist) .== 2)
 
     ## Random TN line_graph
     # check that the nodeinfo is composed of the tuples `(i,j,k)`, where
@@ -268,8 +286,22 @@ end
 @testset ExtendedTestSet "optimize contraction" begin
 
     ## Contraction order:
+    TN = copy(TN0)
+    H, edges = line_graph(TN)
+    order = contraction_order(H, edges)
 
-    # Test that the tensor network is essentially the same
+    # Check that collecting third entries leads to a permutation
+    @test sort([e[3] for e in order]) == [1:length(edges)...]
+    # Check that if e = (i,j,k), contraction k is between tensors i and j
+    @test prod(Set((TN.contractions[k].idx[1].first, TN.contractions[k].idx[2].first)) == Set((i,j))
+                for (i, j, k) in edges)
+
+    # If not same number of edges as vertices of H, throw error
+    pop!(edges)
+    @test_throws ErrorException("Invalid list of edges for `H`; the length of `edges` must equal the number of vertices of `H`") contraction_order(H, edges)
+
+    ## optimize_contraction_order!
+    # Test that the tensor network is essentially the same after `optimize_contration_order!`
     TN = copy(TN0)
     optimize_contraction_order!(TN)
     @test TN.tensors == TN0.tensors
@@ -285,7 +317,7 @@ end
     @test_logs  (:warn, "For TensorNetworks with open indices the treewidth algorithm is unlikely to optimize performance") (:warn, "All open indices are disregarded") optimize_contraction_order!(TN)
 
     # Test on random TN
-    nodes_and_legs = [(10,10), (10,20), (10,50), (30,60)]
+    nodes_and_legs = [(10,10), (10,20), (10,50), (20,60)]
     for (Nn, Ne) in nodes_and_legs
         for i in 1:samples_per_test
             net0 = random_TN(Nn, Ne)
@@ -298,5 +330,62 @@ end
     end
 
     # Test on expectation-valued MPS
-    # TODO: add a test like the one above for MPS
+    # TODO:
+    # BEGIN DELETE: this code is copied from the `mps` branch; delete when merged
+
+    function ClosedMPS(T::AbstractVector{Tensor})
+        l = length(T)
+        @assert ndims(T[1]) == 2
+        for i in 2:l-1
+            @assert ndims(T[i]) == 3
+        end
+         @assert ndims(T[l]) == 2
+
+        contractions = [Summation([1 => 2, 2 => 1]); [Summation([i => 3,i+1 => 1]) for i in 2:l-1]]
+        openidx = reverse([1 => 1; [i => 2 for i in 2:l]])
+        tn = TensorNetwork(T, contractions, openidx)
+        return tn
+    end
+
+
+    function shift_summation(S::Summation, step)
+       return Summation([S.idx[i].first + step => S.idx[i].second for i in 1:2])
+    end
+
+    # END DELETE
+
+    Base.ndims(T::Tensor) = ndims(T.data)
+    Base.copy(net::TensorNetwork) = TensorNetwork(copy(net.tensors), copy(net.contractions), copy(net.openidx))
+    crand(dims...) = rand(ComplexF64, dims...)
+
+    # generate expectation value tensor network
+    """ Compute the expectation value of a random MPS when run through circuit `cgc`"""
+    function expectation_value(cgc::CircuitGateChain{N}; is_decompose = false) where N
+
+        tensors = Tensor.([crand(2,2), [crand(2,2,2) for i in 2:N-1]..., crand(2,2)])
+        T0 = ClosedMPS(tensors)
+
+        T = copy(T0)
+        tensor_circuit!(T, cgc, is_decompose = is_decompose)
+
+        # measure
+        T.contractions = [T.contractions; shift_summation.(T0.contractions, length(T.tensors))]
+        for i in 1:N
+            push!(T.tensors, T0.tensors[N+1-i])
+            push!(T.contractions, Summation([T.openidx[end], (length(T.tensors) => T0.openidx[N+1-i].second)]))
+            pop!(T.openidx)
+        end
+        T
+    end
+
+    N = 4
+    cgc = qft_circuit(N)
+    for is_decompose in [true, false]
+        net0 = expectation_value(cgc, is_decompose = is_decompose);
+        net = copy(net0)
+        optimize_contraction_order!(net)
+        @test Set(net.contractions) == Set(net0.contractions)
+        @test contract(net) ≈ contract(net0)
+    end
+
 end

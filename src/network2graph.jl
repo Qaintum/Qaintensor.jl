@@ -11,7 +11,7 @@ end
     network_graph(net)
 
 Graph of TensorNetwork  `net` using JuliaGraphs. Returns the graph and
-a dictionary `edge_idx` that for a given pair of Tensors `(i, j)` returns
+a dictionary `edge_idx` that for a given pair of Tensors `(i, j)` yields
 the indices of `net.contractions` that involve them.
 """
 function network_graph(net::TensorNetwork)
@@ -137,7 +137,7 @@ function interaction_graph(cgc::CircuitGateChain{N}) where N
 end
 
 """
-    lacking_for_clique_neigh(G, i)
+    lacking_for_clique_neigh(G::Graph, i)
 
 Finds the edges that are lacking to `G` for the neighborhood of vertex `i`
 to be a clique. Returns this number of edges and the edges themselves.
@@ -235,12 +235,12 @@ function min_fill_ordering(G::Graph)
 end
 
 """
-    triangulation(G, ordering)
+    triangulation(G::Graph, ordering)
 
 Chordal completion of `G` following order `ordering`.
 For each vertex add edges between its higher numbered neighbors.
 """
-function triangulation(G, ordering)
+function triangulation(G::Graph, ordering)
     H = copy(G)
     for (i, v) in enumerate(ordering)
         neigh = H.fadjlist[v]
@@ -345,14 +345,16 @@ function is_tree_decomposition(G, tree, bags)
 end
 
 """
-    contraction_order(cgc)
+    contraction_order(H::Graph, edges::Vector{NTuple{N, Int}})
 
-Constructs a near optimal contracting order of H calling `tree_decomposition`,
+Constructs a near optimal contracting order of the line_graph `H` with
+associated edges `edges` by calling `tree_decomposition`,
 following Theorem 4.6 of [Markov & Shi, Simulating quantum computation by contracting tensor networks](https://arxiv.org/abs/quant-ph/0511069.)
 """
-function contraction_order(H::Graph, edges::Array{NTuple{N,Int}, 1}) where N
+function contraction_order(H::Graph, edges::Vector{NTuple{3,Int}}) where N
+    (length(edges) == nv(H)) || error("Invalid list of edges for `H`; the length of `edges` must equal the number of vertices of `H`")
     tw, tree, bags = tree_decomposition(H)
-    contr_order = NTuple{N,Int}[]
+    contr_order = NTuple{3,Int}[]
     degrees = length.(tree.fadjlist)
     while maximum(degrees) > 0
         leaves_idx = findall(degrees .== 1)
@@ -385,7 +387,7 @@ end
 """
     contraction_order(net)
 
-Return a near-optimal contraction order `net`
+Return a near-optimal contraction order of the edges of `net`
 """
 function contraction_order(net::TensorNetwork)
     _, edge_idx = network_graph(net)
