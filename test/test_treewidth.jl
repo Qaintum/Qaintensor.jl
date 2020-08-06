@@ -65,15 +65,17 @@ We will test a tensor network of the following form
     2 □—————□ 3
 where each tensor is a 2x2 identity matrix.
 """
-A = rand(ComplexF64, 2, 2)
+function test_setup()
+    A = rand(ComplexF64, 2, 2)
 
-tensors = Tensor.([copy(A) for i in 1:4])
-contractions = Summation.([[1=>2, 2=>1],
-                           [2=>2, 3=>1],
-                           [3=>2, 4=>1],
-                           [4=>2, 1=>1]])
-openidx = Pair[]
-TN0 = TensorNetwork(tensors, contractions, openidx)
+    tensors = Tensor.([copy(A) for i in 1:4])
+    contractions = Summation.([[1=>2, 2=>1],
+                               [2=>2, 3=>1],
+                               [3=>2, 4=>1],
+                               [4=>2, 1=>1]])
+    openidx = Pair[]
+    TN0 = TensorNetwork(tensors, contractions, openidx)
+end
 
 
 @testset ExtendedTestSet "subset function" begin
@@ -95,6 +97,7 @@ TN0 = TensorNetwork(tensors, contractions, openidx)
 end
 
 @testset ExtendedTestSet "network_graph" begin
+    TN0 = test_setup()
     G, _ = network_graph(TN0)
     @test (nv(G) == 4) & prod(length.(G.fadjlist) .== 2) # the graph is a square
 
@@ -284,7 +287,7 @@ end
 end
 
 @testset ExtendedTestSet "optimize contraction" begin
-
+    TN0 = test_setup()
     ## Contraction order:
     TN = copy(TN0)
     H, edges = line_graph(TN)
