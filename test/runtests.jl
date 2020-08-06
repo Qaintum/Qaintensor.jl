@@ -3,5 +3,7 @@ using TestSetExtensions
 
 
 @testset "All the tests" begin
-    @includetests ARGS
+    # @includetests ["test_helper"]
+    @includetests ["test_mps"]
+    # @includetests ARGS
 end
