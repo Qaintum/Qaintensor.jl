@@ -1,6 +1,7 @@
 name = "Qaintensor"
 uuid = "c26a0288-a22f-4b8a-8630-7ac49e34be6b"
-authors = ["Christian B. Mendl <christian.b.mendl@gmail.com>"]
+authors = ["Christian B. Mendl <christian.b.mendl@gmail.com>",
+	   "Ismael Medina-Suárez <ismaelmedinasuarez@gmail.com>"]
 version = "0.1.0"
 
 [deps]
