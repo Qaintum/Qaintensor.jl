@@ -1,4 +1,5 @@
 using LightGraphs
+using StatsBase: sample
 
 function ⊂(A,B)
     for a in A
@@ -6,6 +7,36 @@ function ⊂(A,B)
     end
     return true
 end
+
+"""
+    random_graph(Nn, Ne)
+
+Random graph with Nn nodes and at most Ne edges (multiedges are not supported)
+"""
+function random_graph(Nn, Ne)
+    G = Graph(Nn)
+    possible_edges = Tuple{Int, Int}[]
+    for i in 1:Nn, j in 1:i-1
+        push!(possible_edges, (i,j))
+    end
+    edges = sample(possible_edges, Ne, replace = false)
+    for e in edges
+        add_edge!(G, e[1], e[2])
+    end
+    return G
+end
+
+# Interaction graph of circuit with only k-neighbors interactions
+function local_circuit_graph(N, k)
+    G = Graph(N)
+    for i in 1:N-1
+        for j in 1:min(k-1, N-i)
+            LightGraphs.add_edge!(G, i, i+j)
+        end
+    end
+    return G
+end
+
 
 """
     network_graph(net)
