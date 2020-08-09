@@ -73,7 +73,7 @@ end
 @testset ExtendedTestSet "network_graph" begin
     TN0 = test_setup()
     G, _ = network_graph(TN0)
-    @test (nv(G) == 4) & prod(length.(G.fadjlist) .== 2) # the graph is a square
+    @test (nv(G) == 4) & prod(degree(G) .== 2) # the graph is a square
 
     # test error throw for contractions of more than two legs
     TN = copy(TN0)
@@ -88,13 +88,13 @@ end
 
     # test line_graph
     LG, _ = line_graph(G)
-    @test (nv(LG) == 4) & prod(length.(LG.fadjlist) .== 2) # in this case G and LG are isomorphic
+    @test (nv(LG) == 4) & prod(degree(LG) .== 2) # in this case G and LG are isomorphic
 
     # test line_graph for tensor networks
     # for tensor networks with only one leg between each pair of tensors
     # the result should be the same
     LG0, _ = line_graph(TN0)
-    @test (nv(LG0) == 4) & prod(length.(LG0.fadjlist) .== 2)
+    @test (nv(LG0) == 4) & prod(degree(LG0) .== 2)
 
     ## Random TN line_graph
     # check that the nodeinfo is composed of the tuples `(i,j,k)`, where

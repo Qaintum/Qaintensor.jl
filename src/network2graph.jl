@@ -78,7 +78,7 @@ function line_graph(G::Graph)
 
     # add nodes
     for i in 1:nv(G)
-        neigh = G.fadjlist[i]
+        neigh = neighbors(G, i)
         for j in neigh
             # add the node if not present
             edge = (i < j)  ? (i, j) : (j, i)
@@ -122,7 +122,7 @@ function line_graph(net::TensorNetwork)
 
     # add nodes
     for i in 1:nv(G)
-        neigh = G.fadjlist[i]
+        neigh = neighbors(G, i)
         for j in neigh[neigh .> i]
             # get number of parallel edges
             for e in edge_idx[(i, j)]
@@ -174,7 +174,7 @@ Finds the edges that are lacking to `G` for the neighborhood of vertex `i`
 to be a clique. Returns this number of edges and the edges themselves.
 """
 function lacking_for_clique_neigh(G::Graph, i::Int)
-    neigh = G.fadjlist[i]
+    neigh = neighbors(G,i)
     lacking = Tuple{Int,Int}[]
     for (j, i2) in enumerate(neigh)
         for i1 in neigh[1:j-1]
@@ -223,20 +223,20 @@ function min_fill_ordering(G::Graph)
     while nv(H) > 0
         success = false
         for i in nv(H):-1:1
-            if length(H.fadjlist[i]) == 0
+            if degree(H, i) == 0
                 rem_vertex_fill!(H, i, no_lacking, ordering, vertex_label)
                 success = true
             end
         end
         for i in nv(H):-1:1
-            if length(H.fadjlist[i]) == 1
+            if degree(H, i) == 1
                 rem_vertex_fill!(H, i, no_lacking, ordering, vertex_label)
                 success = true
             end
         end
 
         if ! success
-            degrees = length.(H.fadjlist)
+            degrees = degree(H)
             J = sortperm(degrees)
 
             found_clique = false
@@ -274,7 +274,7 @@ For each vertex add edges between its higher numbered neighbors.
 function triangulation(G::Graph, ordering)
     H = copy(G)
     for (i, v) in enumerate(ordering)
-        neigh = H.fadjlist[v]
+        neigh = neighbors(H, v)
         high_neigh = neigh ∩ ordering[i+1:end] # get higher numbered neighbors
         for (j, i1) in enumerate(high_neigh)
             for i2 in high_neigh[1:j-1]
@@ -294,7 +294,7 @@ width of the decomposition, the tree and the bags.
 function tree_decomposition(G::Graph)
     ordering = min_fill_ordering(G)
     H = triangulation(G, ordering)
-    up_neighs = [H.fadjlist[ordering[i]] ∩ ordering[i+1:end] for i in 1:nv(H)]
+    up_neighs = [neighbors(H, ordering[i]) ∩ ordering[i+1:end] for i in 1:nv(H)]
     # first bag is the first node within a maximum clique following the ordering
     clique_neigh_idx = findfirst(length.(up_neighs) .== nv(H)-1:-1:0)
     first_bag = up_neighs[clique_neigh_idx] ∪ ordering[clique_neigh_idx]
@@ -386,12 +386,12 @@ function contraction_order(H::Graph, edges::Vector{NTuple{3,Int}}) where N
     (length(edges) == nv(H)) || error("Invalid list of edges for `H`; the length of `edges` must equal the number of vertices of `H`")
     tw, tree, bags = tree_decomposition(H)
     contr_order = NTuple{3,Int}[]
-    degrees = length.(tree.fadjlist)
+    degrees = degree(tree)
     while maximum(degrees) > 0
         leaves_idx = findall(degrees .== 1)
         leaf_idx = leaves_idx[argmin(length.(bags[leaves_idx]))]
         leaf_bag = bags[leaf_idx]
-        neigh_idx = tree.fadjlist[leaf_idx][1] # only neighbor of leaf
+        neigh_idx = neighbors(tree, leaf_idx)[1]
         neigh_bag = bags[neigh_idx]
         diff_bag = setdiff(leaf_bag, neigh_bag)
         for i in diff_bag
@@ -404,7 +404,7 @@ function contraction_order(H::Graph, edges::Vector{NTuple{3,Int}}) where N
         if leaf_idx ≤ nv(tree) # if removed other than last vertex
             bags[leaf_idx] = moved_bag
         end
-        degrees = length.(tree.fadjlist)
+        degrees = degree(tree)
     end
 
     # check that only one bag left
