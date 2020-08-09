@@ -70,6 +70,35 @@ end
     @test_throws MethodError (XGate() ⊂ XGate())
 end
 
+@testset ExtendedTestSet "random_graph" begin
+    Nn = 10
+    Ne = 20
+    G = random_graph(Nn, Ne)
+    @test nv(G) == Nn
+    @test ne(G) == Ne
+
+    Ne = 46
+    @test_throws ErrorException("Number of edges must be smaller or equal than N(N-1)/2, with N the number of vertices") random_graph(Nn, Ne)
+
+end
+
+@testset ExtendedTestSet "local_circuit_graph" begin
+    N = 4
+    G = Graph(N)
+    add_edge!(G, 1, 2)
+    add_edge!(G, 2, 3)
+    add_edge!(G, 3, 4)
+    @test G == local_circuit_graph(4,2)
+
+    add_edge!(G, 1, 3)
+    add_edge!(G, 2, 4)
+    @test G == local_circuit_graph(4,3)
+
+
+    add_edge!(G, 1, 4)
+    @test G == local_circuit_graph(4,4)
+end
+
 @testset ExtendedTestSet "network_graph" begin
     TN0 = test_setup()
     G, _ = network_graph(TN0)

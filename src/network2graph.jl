@@ -11,9 +11,10 @@ end
 """
     random_graph(Nn, Ne)
 
-Random graph with Nn nodes and at most Ne edges (multiedges are not supported)
+Random graph with Nn nodes and at Ne edges.
 """
 function random_graph(Nn, Ne)
+    Ne ≤ Nn*(Nn-1)÷2 || error("Number of edges must be smaller or equal than N(N-1)/2, with N the number of vertices")
     G = Graph(Nn)
     possible_edges = Tuple{Int, Int}[]
     for i in 1:Nn, j in 1:i-1
@@ -26,7 +27,11 @@ function random_graph(Nn, Ne)
     return G
 end
 
-# Interaction graph of circuit with only k-neighbors interactions
+"""
+    local_circuit_graph(N, k)
+
+Interaction graph of an N-qubit circuit with only k-neighbors interactions.
+"""
 function local_circuit_graph(N, k)
     G = Graph(N)
     for i in 1:N-1
