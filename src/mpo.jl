@@ -18,6 +18,10 @@ struct MPO <: TensorNetwork
         error("Direct conversion to MPS form is not support, please construct MPO from matrix or CircuitGate objects")
     end
 
+    """
+        MPO(m::AbstractMatrix)
+
+    Transform an operator represented by matrix `m` into an `MPO` form."""
     function MPO(m::AbstractMatrix)
 
         # TODO: support general "qudits"
@@ -65,15 +69,12 @@ struct MPO <: TensorNetwork
             #output dimensions
             for i in 1:M-1
                 push!(openidx, M-i+1 => 2)
-                #push!(openidx, i => 2)
             end
             push!(openidx, 1 => 1)
 
             #input dimensions
-
             for i in 1:M-1
                 push!(openidx, M-i+1 => 3)
-                #push!(openidx, i => 3)
             end
             push!(openidx, 1 => 2)
             else
@@ -82,26 +83,41 @@ struct MPO <: TensorNetwork
             push!(t, Tensor(m))
             openidx = [1 => 2, 1 => 1]
         end
-
         new(t, con, openidx)
     end
 
-    function MPO(cg::CircuitGate)
+    """
+        MPO(cg::AbstractGate)
+
+    Transform an operator represented by a gate `cg` into an `MPO` form.
+    """
+    function MPO(cg::AbstractGate)
         MPO(Qaintessent.matrix(cg))
     end
 end
 
+"""
+    shift_summation(S::Summation, step)
+
+Shift the first element of both pairs in summation `S` by `step`
+"""
 function shift_summation(S::Summation, step)
    return Summation([S.idx[i].first + step => S.idx[i].second for i in 1:2])
 end
 
+"""
+    shift_pair(P::Pair, step)
+
+Shift the first element of pair `P`  by `step`
+"""
 function shift_pair(P::Pair, step)
     return P.first + step => P.second
 end
+
 """
     circuit_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
 
-extends an operator `MPO` acting on `M` qudits into an operator acting on `N` qudits by inserting identities
+Extend an operator `MPO` acting on `M` qudits into an operator acting on `N` qudits by inserting identities.
 """
 
 function circuit_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
@@ -135,15 +151,22 @@ function circuit_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
     return mpo
 end
 
+"""
+    circuit_MPO(m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
+
+Extend an operator represented by a matrix `m` acting on `M`
+qudits into an operator acting on `N` qudits by inserting identities.
+"""
 function circuit_MPO(m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
     collect(iwire) == sort(collect(iwire)) || @error("Wires not sorted")
 return circuit_MPO(MPO(m), iwire)
 end
 
+
 """
     apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) where M
 
-given a state `ψ`  in a Tensor Network form and an operator `mpo` acting on `M` qudits, it updates the state by effectively applying `mpo`. If `M` is smaller than the number of qudits of `psi`,  `circuit_MPO` is first applied.
+Given a state `ψ`  in a Tensor Network form and an operator `mpo` acting on `M` qudits, update the state by effectively applying `mpo`.
 """
 
 function apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) where M
@@ -172,6 +195,11 @@ function apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) whe
     return ψ_prime
 end
 
+"""
+    apply_MPO(ψ::TensorNetwork, m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
+
+Given a state `ψ`  in a Tensor Network form and an operator represented by a matrix `m` acting on `M` qudits, update the state by effectively applying `m`.
+"""
 function apply_MPO(ψ::TensorNetwork, m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
     iwire_sorted = sort(collect(iwire))
     if iwire_sorted != collect(iwire)
@@ -186,4 +214,15 @@ function apply_MPO(ψ::TensorNetwork, m::AbstractMatrix, iwire::NTuple{M, <:Inte
         m = reshape(m, (2^M, 2^M))
     end
     return apply_MPO(ψ, MPO(m), Tuple(iwire_sorted))
+end
+
+"""
+    apply_MPO(ψ::TensorNetwork, cg::CircuitGate)
+
+Given a state `ψ`  in a Tensor Network form and CircuitGate `cg`, update the state by effectively applying `m`.
+"""
+function apply_MPO(ψ::TensorNetwork, cg::CircuitGate)
+    m = (cg.gate).matrix
+    iwire = cg.iwire
+return apply_MPO(ψ, m, iwire)
 end

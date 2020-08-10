@@ -31,7 +31,7 @@ end
 """"
     check_mps(mps::MPS)
 
-runs checks on MPS object to ensure that structure has not been changed
+Run checks on MPS object to ensure that structure has not been changed.
 """
 
 function check_mps(mps::MPS)
@@ -49,18 +49,21 @@ end
 """
     is_power_two(i::Integer)
 
-resturns true if i is a power of 2, else false
+Return true if i is a power of 2, else false.
 """
 function is_power_two(i::Integer)
     i != 0 || return false
     return (i & (i - 1)) == 0
 end
 
+"""
+    MPS(ψ::AbstractVector{ComplexF64})
 
+Convert a vector `ψ` into a MPS reprsentation of it.
+"""
 function MPS(ψ::AbstractVector{ComplexF64})
     is_power_two(length(ψ)) || error("Input state must have length 2^N")
     M = Integer(log(2, length(ψ)))
-    # T = TensorNetwork([], [], [])
     tensors = Tensor[]
     contractions = Summation[]
     openidx = Pair{Integer,Integer}[]
@@ -95,6 +98,13 @@ function MPS(ψ::AbstractVector{ComplexF64})
 end
 
 
+"""
+    OpenMPS(T::AbstractVector{Tensor})
+
+Create a MPS formed by the tensors in `T` with open boundary conditions
+(that is, each tensor has 2 virtual legs and a physical one, including
+those on the boundaries).
+"""
 function OpenMPS(T::AbstractVector{Tensor})
     l = length(T)
     for i in 1:l
@@ -107,11 +117,25 @@ function OpenMPS(T::AbstractVector{Tensor})
     return tn
 end
 
+"""
+    OpenMPS(T::Tensor, N::Integer)
+
+Create a translational invariant MPS of length `N` formed by tensors `T` with open boundary conditions
+(that is, each tensor has 2 virtual legs and a physical one, including
+those on the boundaries).
+"""
 function OpenMPS(T::Tensor, N::Integer)
     #translational invariant MPS
     return OpenMPS(fill(T, N))
 end
 
+"""
+    ClosedMPS(T::AbstractVector{Tensor})
+
+Create a MPS formed by the tensors  in `T` with closed boundary conditions
+(that is, each tensor has 2 virtual legs and a physical one, except those at the
+boundaries that have only one virtual leg).
+"""
 function ClosedMPS(T::AbstractVector{Tensor})
     l = length(T)
     @assert ndims(T[1]) == 2
@@ -126,10 +150,24 @@ function ClosedMPS(T::AbstractVector{Tensor})
     return tn
 end
 
+"""
+    ClosedMPS(Tfirst::Tensor, Tmiddle::Tensor, Tend::Tensor, N::Integer)
+
+Create a translational invariant MPS of length `N` formed by tensors
+`Tfirst`- `Tmiddle`- ... - `Tmiddle`- `Tlast` with closed boundary conditions
+(that is, each tensor has 2 virtual legs and a physical one, except those at the
+boundaries that have only one virtual leg).
+"""
 function ClosedMPS(Tfirst::Tensor, Tmiddle::Tensor, Tend::Tensor, N::Integer)
     return ClosedMPS([Tfirst; fill(Tmiddle, N-2); Tend])
 end
 
+"""
+    PeriodicMPS(T::AbstractVector{Tensor})
+
+Create a MPS of formed by the tensors in `T` with periodic boundary conditions
+(that is, the first and last tensors are joined trough a virtual leg).
+"""
 function PeriodicMPS(T::AbstractVector{Tensor})
   l=length(T)
     for i in 1:l
@@ -141,26 +179,34 @@ function PeriodicMPS(T::AbstractVector{Tensor})
     tn = MPS(T, contractions, openidx)
     return tn
 end
+"""
+    PeriodicMPS(T::AbstractVector{Tensor})
 
+Create a MPS of length `N` formed by the tensors `T` with periodic boundary conditions
+(that is, the first and last tensors are joined trough a virtual leg).
+"""
 function PeriodicMPS(T::Tensor, N::Integer)
     #translational invariant MPS
     return PeriodicMPS(fill(T, N))
 end
 
-"""
-    contract(tn::MPS, er::Real)
+function isequal(S1::Summation, S2::Summation)
+    S1.idx == S2.idx
+end
 
-tn: TensorNetwork. Must be provided in a MPS form, that is, tn.tensors have three legs,
-    tn.contractions are of the form[(T_i, 3), (T_i+1,1)]
-er: maximum error in the truncation done in an individual contraction
 """
-function contract(tn::MPS; er::Real=0.0)
+    contract_svd_mps(tn::MPS; er::Real=0.0)
+
+Contract an MPS object with a maximum error of truncation `er` in each
+individual contraction.
+"""
+function contract_svd_mps(tn::MPS; er::Real=0.0)
 
     lchain = length(tn.tensors)
+    (! any([isequal(Summation([lchain=>3, 1=>1]), s) for s in tn.contractions])) & (! any([isequal(Summation([1=>1, lchain=>3]), s) for s in tn.contractions]))  || error("Function don't support periodic boundary conditions for now")
     tcontract = tn.tensors[1]
-    k = length(size(tcontract)) - 2
     for j in 2:lchain
-        tcontract = contract_svd(tcontract, tn.tensors[j], (j+k,1); er=er)
+        tcontract = contract_svd(tcontract, tn.tensors[j], (ndims(tcontract),1) , er=er)
     end
     return tcontract.data
 end
