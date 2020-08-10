@@ -1,6 +1,6 @@
 name: Run tests
 
-on: [pull_request, push]
+on: pull_request
 
 jobs:
   test:
@@ -8,8 +8,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v1.0.0
-      - uses: julia-actions/setup-julia@latest
+      - uses: julia-actions/setup-julia@v1
         with:
-          version: ${{ matrix.julia-version }}
+          version: 1.5.0
       - run: julia --project test/installQaintessent.jl
       - uses: julia-actions/julia-runtest@master
