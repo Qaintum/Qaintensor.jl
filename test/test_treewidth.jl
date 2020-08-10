@@ -2,7 +2,8 @@ using Test
 using TestSetExtensions
 using LightGraphs
 using Qaintensor
-using Qaintensor: tree_decomposition, is_tree_decomposition, ⊂,
+using Qaintensor: random_graph, local_circuit_graph,
+        tree_decomposition, is_tree_decomposition, ⊂,
         interaction_graph, lacking_for_clique_neigh, rem_vertex_fill!,
         min_fill_ordering, triangulation, contraction_order, contract
 using Qaintessent
@@ -10,34 +11,7 @@ using Qaintessent
 # for extensive check of the random tests increase the following parameter
 samples_per_test = 1
 
-
 Base.copy(net::TensorNetwork) = TensorNetwork(copy(net.tensors), copy(net.contractions), copy(net.openidx))
-
-"""
-    random_graph(Nn, Ne)
-
-Random graph with Nn nodes and at most Ne edges (multiedges are not supported)
-"""
-function random_graph(Nn, Ne)
-    G = Graph(Nn)
-    for j in 1:Ne
-        n1 = rand(1:Nn-1)
-        n2 = rand(n1+1:Nn)
-        add_edge!(G, n1, n2)
-    end
-    return G
-end
-
-# Interaction graph of circuit with only k-neighbors interactions
-function local_circuit_graph(N, k)
-    G = Graph(N)
-    for i in 1:N-1
-        for j in 1:min(k-1, N-i)
-            LightGraphs.add_edge!(G, i, i+j)
-        end
-    end
-    return G
-end
 
 """
     random_TN(Nn, Ne)
@@ -63,7 +37,7 @@ We will test a tensor network of the following form
     1 □—————□ 4
       |     |
     2 □—————□ 3
-where each tensor is a 2x2 identity matrix.
+where each tensor is a 2x2 random matrix.
 """
 function test_setup()
     A = rand(ComplexF64, 2, 2)
@@ -96,26 +70,60 @@ end
     @test_throws MethodError (XGate() ⊂ XGate())
 end
 
+@testset ExtendedTestSet "random_graph" begin
+    Nn = 10
+    Ne = 20
+    G = random_graph(Nn, Ne)
+    @test nv(G) == Nn
+    @test ne(G) == Ne
+
+    Ne = 46
+    @test_throws ErrorException("Number of edges must be smaller or equal than N(N-1)/2, with N the number of vertices") random_graph(Nn, Ne)
+
+end
+
+@testset ExtendedTestSet "local_circuit_graph" begin
+    N = 4
+    G = Graph(N)
+    add_edge!(G, 1, 2)
+    add_edge!(G, 2, 3)
+    add_edge!(G, 3, 4)
+    @test G == local_circuit_graph(4,2)
+
+    add_edge!(G, 1, 3)
+    add_edge!(G, 2, 4)
+    @test G == local_circuit_graph(4,3)
+
+
+    add_edge!(G, 1, 4)
+    @test G == local_circuit_graph(4,4)
+end
+
 @testset ExtendedTestSet "network_graph" begin
     TN0 = test_setup()
     G, _ = network_graph(TN0)
-    @test (nv(G) == 4) & prod(length.(G.fadjlist) .== 2) # the graph is a square
+    @test (nv(G) == 4) & prod(degree(G) .== 2) # the graph is a square
 
     # test error throw for contractions of more than two legs
     TN = copy(TN0)
     TN.contractions = [Summation([1=>2, 2=>1, 2=>2, 3=>1]),
                        Summation([3=>2, 4=>1, 4=>2, 1=>1])]
     @test_throws ErrorException("Contractions of more than 2 tensors not supported") network_graph(TN)
+end
+
+@testset ExtendedTestSet "line_graph" begin
+    TN0 = test_setup()
+    G, _ = network_graph(TN0)
 
     # test line_graph
     LG, _ = line_graph(G)
-    @test (nv(LG) == 4) & prod(length.(LG.fadjlist) .== 2) # in this case G and LG are isomorphic
+    @test (nv(LG) == 4) & prod(degree(LG) .== 2) # in this case G and LG are isomorphic
 
     # test line_graph for tensor networks
     # for tensor networks with only one leg between each pair of tensors
     # the result should be the same
     LG0, _ = line_graph(TN0)
-    @test (nv(LG0) == 4) & prod(length.(LG0.fadjlist) .== 2)
+    @test (nv(LG0) == 4) & prod(degree(LG0) .== 2)
 
     ## Random TN line_graph
     # check that the nodeinfo is composed of the tuples `(i,j,k)`, where
@@ -138,7 +146,9 @@ end
     push!(TN.openidx, c.idx[1])
     push!(TN.openidx, c.idx[2])
     @test_logs  (:warn, "All open indices are disregarded") line_graph(TN)
+end
 
+@testset ExtendedTestSet "interaction_graph" begin
     ## Interaction graph:
     # Interaction graph of the qft circuit is a complete graph
     N = 10
@@ -147,17 +157,19 @@ end
     @test G == complete_graph(N)
 end
 
-
-@testset ExtendedTestSet "tree decomposition subroutines" begin
-
-    ## test `lacking_for_clique_neigh` function
+# Tree decomposition subroutines
+@testset ExtendedTestSet "lacking_for_clique_neigh" begin
     G = complete_graph(5)
     @test (0,[]) == lacking_for_clique_neigh(G,1)
     rem_edge!(G,2,3)
     @test (1,[(2,3)]) == lacking_for_clique_neigh(G,1)
+end
 
-    ##  `rem_vertex_fill!`: that eliminates vertices in the graph and fills
+@testset ExtendedTestSet "rem_vertex_fill!" begin
+    ## `rem_vertex_fill!`: eliminates a vertexs in the graph and fills
     # their neighborhood
+    G = complete_graph(5)
+    rem_edge!(G,2,3)
     ordering = Int[]
     vertex_label = [1, 2, 3, 4, 5]
     rem_vertex_fill!(G, 1, [(2,3)], ordering, vertex_label)
@@ -165,7 +177,9 @@ end
     @test G == complete_graph(4)
     @test ordering == [1]
     @test vertex_label == [5, 2, 3, 4]
+end
 
+@testset ExtendedTestSet "triangulation" begin
     ## `triangulation`: from a graph and an ordering get a chordal completion
     # (i. e. for every n-cycle (n>3) there is a 3-cycle that traverses
     # only three of the original nodes)
@@ -208,7 +222,7 @@ end
     end
 end
 
-@testset ExtendedTestSet "tree decomposition validation" begin
+@testset ExtendedTestSet "is_tree_decomposition" begin
 
 
     # We consider the following graph and tree decomposition
@@ -267,7 +281,7 @@ end
     # validate tree decomposition algorithm on random graphs
     for i in 1:samples_per_test
         Nn = rand(20:50)
-        Ne = rand(2*Nn:10*Nn)
+        Ne = rand(3*Nn:Nn*(Nn-1)÷2)
         G = random_graph(Nn, Ne)
         tw, tree, bags = tree_decomposition(G)
         @test is_tree_decomposition(G, tree, bags)
@@ -283,10 +297,9 @@ end
             @test is_tree_decomposition(H, tree, bags)
         end
     end
-
 end
 
-@testset ExtendedTestSet "optimize contraction" begin
+@testset ExtendedTestSet "contraction_order" begin
     TN0 = test_setup()
     ## Contraction order:
     TN = copy(TN0)
@@ -302,9 +315,12 @@ end
     # If not same number of edges as vertices of H, throw error
     pop!(edges)
     @test_throws ErrorException("Invalid list of edges for `H`; the length of `edges` must equal the number of vertices of `H`") contraction_order(H, edges)
+end
 
+@testset ExtendedTestSet "optimize_contraction_order!" begin
     ## optimize_contraction_order!
     # Test that the tensor network is essentially the same after `optimize_contration_order!`
+    TN0 = test_setup()
     TN = copy(TN0)
     optimize_contraction_order!(TN)
     @test TN.tensors == TN0.tensors
