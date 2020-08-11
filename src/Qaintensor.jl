@@ -15,6 +15,10 @@ export
     Summation,
     contract
 
+include("decompose.jl")
+export
+    decompose!
+
 include("tensor_circuit.jl")
 export
     tensor_circuit!

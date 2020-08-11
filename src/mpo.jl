@@ -18,6 +18,10 @@ struct MPO <: TensorNetwork
         error("Direct conversion to MPS form is not support, please construct MPO from matrix or CircuitGate objects")
     end
 
+    """
+        MPO(m::AbstractMatrix)
+
+    Transform an operator represented by matrix `m` into an `MPO` form."""
     function MPO(m::AbstractMatrix)
 
         # TODO: support general "qudits"
@@ -40,7 +44,6 @@ struct MPO <: TensorNetwork
                 push!(dims, i)
                 push!(dims, i + M)
             end
-
             m = permutedims(m, dims)
             m = reshape(m, (4*bond_dim, :))
 
@@ -61,43 +64,64 @@ struct MPO <: TensorNetwork
                 push!(con, Summation([i => 4, i+1 => 1]))
                 bond_dim = new_bond_dim
             end
-            for i in 1:M-1
-                push!(openidx, M-i+1 => 3)
-            end
-            push!(openidx, 1 => 2)
+            push!(t, Tensor(reshape(m, (bond_dim, 2, 2))))
+
+            #output dimensions
             for i in 1:M-1
                 push!(openidx, M-i+1 => 2)
             end
             push!(openidx, 1 => 1)
 
-            push!(t, Tensor(reshape(m, (bond_dim, 2, 2))))
-
+            #input dimensions
+            for i in 1:M-1
+                push!(openidx, M-i+1 => 3)
+            end
+            push!(openidx, 1 => 2)
             else
             #one-qubit operator
             m = reshape(m, 2, 2)
             push!(t, Tensor(m))
             openidx = [1 => 2, 1 => 1]
         end
-
         new(t, con, openidx)
     end
 
-    function MPO(cg::CircuitGate)
+    """
+        MPO(cg::AbstractGate)
+
+    Transform an operator represented by a gate `cg` into an `MPO` form.
+    """
+    function MPO(cg::AbstractGate)
         MPO(Qaintessent.matrix(cg))
     end
 end
 
+"""
+    shift_summation(S::Summation, step)
+
+Shift the first element of both pairs in summation `S` by `step`
+"""
 function shift_summation(S::Summation, step)
    return Summation([S.idx[i].first + step => S.idx[i].second for i in 1:2])
 end
 
 """
+    shift_pair(P::Pair, step)
+
+Shift the first element of pair `P`  by `step`
+"""
+function shift_pair(P::Pair, step)
+    return P.first + step => P.second
+end
+
+"""
     circuit_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
 
-extends an operator `MPO` acting on `M` qudits into an operator acting on `N` qudits by inserting identities
+Extend an operator `MPO` acting on `M` qudits into an operator acting on `N` qudits by inserting identities.
 """
 
 function circuit_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
+    collect(iwire) == sort(collect(iwire)) || @error("Wires not sorted")
     N = length(iwire[1]:iwire[end])
     @assert length(mpo.tensors) == M
 
@@ -106,69 +130,99 @@ function circuit_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
 
     # TODO: support general "qudits"
     d = 2
+    qwire = (iwire[1]:iwire[end]...,)
+    pipeswire = setdiff(qwire, iwire)
+    pipeswire = sort(pipeswire)
+    qwire = reverse(qwire)
 
-    pipeswire = setdiff((iwire[1]:iwire[end]...,), iwire)
-    for (i,w) in enumerate(pipeswire)
-        bond = size(mpo.tensors[w-iwire[1]])[end]
+    for (i,w) in enumerate(reverse(pipeswire))
+        ind = findfirst(x->x==w, qwire)
+        bond = size(mpo.tensors[ind-1])[end]
         Vpipe = reshape(kron(Matrix(1I, bond, bond), Matrix(1I, d, d)), (bond, d, bond, d))
-        #Julia ordena las dimensiones de salida->entrada
         Vpipe = permutedims(Vpipe, [1,2,4,3])
-        insert!(mpo.tensors, w-iwire[1]+1, Tensor(Vpipe))
+        insert!(mpo.tensors, ind, Tensor(Vpipe))
     end
 
     for i in M:N-1
         push!(mpo.contractions, Summation([i => 4, i+1 => 1]))
-        pushfirst!(mpo.openidx, i + 1 => 3)
-        insert!(mpo.openidx, M + i, i + 1 => 2)
+        pushfirst!(mpo.openidx, i + 1 => 2)
+        insert!(mpo.openidx, i+2, i + 1 => 3)
     end
-
     return mpo
 end
 
 """
+    circuit_MPO(m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
+
+Extend an operator represented by a matrix `m` acting on `M`
+qudits into an operator acting on `N` qudits by inserting identities.
+"""
+function circuit_MPO(m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
+    collect(iwire) == sort(collect(iwire)) || @error("Wires not sorted")
+return circuit_MPO(MPO(m), iwire)
+end
+
+
+"""
     apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) where M
 
-given a state `ψ`  in a Tensor Network form and an operator `mpo` acting on `M` qudits, it updates the state by effectively applying `mpo`. If `M` is smaller than the number of qudits of `psi`,  `circuit_MPO` is first applied.
+Given a state `ψ`  in a Tensor Network form and an operator `mpo` acting on `M` qudits, update the state by effectively applying `mpo`.
 """
 
 function apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) where M
-
-    iwire = sort(collect(iwire))
-    # TODO: support general "qudits"
-    d = 2
     n = length(ψ.openidx) #number of qudits
     step = length(ψ.tensors)
+    qwire = (iwire[1]:iwire[end]...,)
+    N = length(qwire)
+    # TODO: support general "qudits"
+    d = 2
 
-    N = length(iwire[1]:iwire[end])
     if M < N
         mpo = circuit_MPO(mpo, Tuple(iwire))
     end
 
-    qwire = (iwire[1]:iwire[end]...,)
-    qbef = (1:iwire[1]-1...,)
-    qaft = (iwire[end]+1:n...,)
-
     ψ_prime = GeneralTensorNetwork([copy(ψ.tensors); copy(mpo.tensors)],
                         [copy(ψ.contractions); shift_summation.(mpo.contractions, step)],
-                        [])
-    for (i,w) in enumerate(qwire[2:end])
-        push!(ψ_prime.contractions, Summation([ψ.openidx[n-w+1], step+i+1 => 3]))
+                        copy(ψ.openidx))
+    #add the contractions between mpo and state
+    for (i,w) in enumerate(qwire)
+        push!(ψ_prime.contractions, Summation([ψ.openidx[w], shift_pair(mpo.openidx[i+N], step)]))
     end
-    push!(ψ_prime.contractions, Summation([ψ.openidx[n-qwire[1]+1], step + 1 => 2]))
-
-    for (i,q) in enumerate(qaft)
-        push!(ψ_prime.openidx, ψ.openidx[n-q+1])
+    #update the openidx
+    for (i,q) in enumerate(qwire)
+        ψ_prime.openidx[q] = shift_pair(mpo.openidx[i], step)
     end
-
-    for (i,w) in enumerate(qwire[2:end])
-            push!(ψ_prime.openidx,  N + step - i + 1 => 2)
-    end
-    push!(ψ_prime.openidx, step + 1 => 1)
-
-
-    for (i,q) in enumerate(qbef)
-        push!(ψ_prime.openidx, ψ.openidx[n-q+1])
-    end
-
     return ψ_prime
+end
+
+"""
+    apply_MPO(ψ::TensorNetwork, m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
+
+Given a state `ψ`  in a Tensor Network form and an operator represented by a matrix `m` acting on `M` qudits, update the state by effectively applying `m`.
+"""
+function apply_MPO(ψ::TensorNetwork, m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
+    iwire_sorted = sort(collect(iwire))
+    if iwire_sorted != collect(iwire)
+        sort_wires = sortperm(collect(iwire))
+        perm = reverse([1:M...])
+        perm = perm[sort_wires]
+        perm = reverse(perm)
+        perm = [perm; perm.+M]
+
+        m = reshape(m, fill(2, 2M)...)
+        m = permutedims(m, perm)
+        m = reshape(m, (2^M, 2^M))
+    end
+    return apply_MPO(ψ, MPO(m), Tuple(iwire_sorted))
+end
+
+"""
+    apply_MPO(ψ::TensorNetwork, cg::CircuitGate)
+
+Given a state `ψ`  in a Tensor Network form and CircuitGate `cg`, update the state by effectively applying `m`.
+"""
+function apply_MPO(ψ::TensorNetwork, cg::CircuitGate)
+    m = (cg.gate).matrix
+    iwire = cg.iwire
+return apply_MPO(ψ, m, iwire)
 end

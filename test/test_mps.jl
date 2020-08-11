@@ -4,14 +4,35 @@ using Qaintensor
 using LinearAlgebra
 using Random
 
+@testset ExtendedTestSet "contract_svd" begin
+    t1 = rand(ComplexF64, 4,4)
+    t2 = rand(ComplexF64, 4,4)
+    t = contract_svd(Tensor(t1),Tensor(t2), (2,1))
+    @test t.data ≈ t1*t2
+
+    t1 = Tensor(rand(ComplexF64, 2,3,4,2))
+    t2 = Tensor(rand(ComplexF64, 1,5,2,4))
+
+    con1 = Summation([1 => 1, 2 => 3])
+    con2 = Summation([1 => 3, 2 => 4])
+    open1 = reverse([1 => 2, 1 => 3, 1 => 4, 2 => 1, 2 => 2, 2 => 4])
+    open2 = reverse([1 => 1, 1 => 2, 1 => 4, 2 => 1, 2 => 2, 2 => 3])
+
+    tn1 = GeneralTensorNetwork([t1,t2], [con1], open1)
+    tn2 = GeneralTensorNetwork([t1,t2], [con2], open2)
+
+    @test contract(tn1) ≈ contract_svd(t1, t2, (1,3)).data
+    @test contract(tn2) ≈ contract_svd(t1, t2, (3,4)).data
+end
+
 @testset ExtendedTestSet "open_mps" begin
 
     T = Tensor(rand(2,2,2))
     mps = OpenMPS(T, 3)
 
     gmps = GeneralTensorNetwork(mps.tensors, mps.contractions, mps.openidx)
-    mps_contract=contract(gmps)
-    mps_svd=contract(mps; er=0.0)
+    mps_contract = contract(gmps)
+    mps_svd = contract_svd_mps(mps; er=0.0)
 
     @test mps_contract ≈ mps_svd
 end
@@ -24,10 +45,16 @@ end
     mps = ClosedMPS([T1, T2, T3])
 
     gmps = GeneralTensorNetwork(mps.tensors, mps.contractions, mps.openidx)
-    mps_contract=contract(gmps)
-    mps_svd=contract(mps; er=0.0)
+    mps_contract = contract(gmps)
+    mps_svd = contract_svd_mps(mps; er=0.0)
 
     @test mps_contract ≈ mps_svd
+end
+
+@testset ExtendedTestSet "periodic_mps" begin
+    T = Tensor(rand(2,2,2))
+    mps = PeriodicMPS(T, 3)
+    @test_throws ErrorException contract_svd_mps(mps, er=0.0)
 end
 
 @testset ExtendedTestSet "conversion from state-vector to mps" begin
