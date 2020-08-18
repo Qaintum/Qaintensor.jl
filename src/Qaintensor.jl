@@ -11,7 +11,10 @@ export
 include("tensor_network.jl")
 export
     TensorNetwork,
-    Summation,
+    Summation
+
+include("contract.jl")
+export
     contract
 
 include("decompose.jl")
@@ -21,6 +24,12 @@ export
 include("tensor_circuit.jl")
 export
     tensor_circuit!
+
+include("network2graph.jl")
+export
+    network_graph,
+    line_graph,
+    optimize_contraction_order!
 
 
 # re-export definitions from Qaintessent.jl
