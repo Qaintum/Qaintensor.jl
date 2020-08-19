@@ -35,12 +35,14 @@ export
 include("mpo.jl")
 export
     MPO,
-    circuit_MPO,
+    extend_MPO,
     apply_MPO
 
 include("switch.jl")
 export
     switch!
+
+include("helper.jl")
 
 # re-export definitions from Qaintessent.jl
 

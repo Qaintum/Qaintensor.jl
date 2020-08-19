@@ -195,3 +195,14 @@ end
     @test_throws BoundsError switch!(mps, 7)
     @test_throws BoundsError switch!(mps, -2)
 end
+
+@testset ExtendedTestSet "contract_svd_mps" begin
+    T = Tensor(rand(2,2,2))
+    mps = OpenMPS(T, 3)
+    gmps = GeneralTensorNetwork(mps.tensors, mps.contractions, mps.openidx)
+    mps_contract = contract(gmps)
+    mps_svd = contract_svd_mps(mps; er=0.0)
+
+    @test mps_contract ≈ mps_svd
+    @test_throws ErrorException("Function doesn't support periodic boundary conditions for now") contract_svd_mps(PeriodicMPS(T, 3); er=0.0)
+end

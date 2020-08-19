@@ -169,7 +169,7 @@ Create a MPS of formed by the tensors in `T` with periodic boundary conditions
 (that is, the first and last tensors are joined trough a virtual leg).
 """
 function PeriodicMPS(T::AbstractVector{Tensor})
-  l=length(T)
+    l=length(T)
     for i in 1:l
         @assert Qaintensor.ndims(T[i]) == 3
     end
@@ -190,10 +190,6 @@ function PeriodicMPS(T::Tensor, N::Integer)
     return PeriodicMPS(fill(T, N))
 end
 
-function isequal(S1::Summation, S2::Summation)
-    S1.idx == S2.idx
-end
-
 """
     contract_svd_mps(tn::MPS; er::Real=0.0)
 
@@ -202,8 +198,10 @@ individual contraction.
 """
 function contract_svd_mps(tn::MPS; er::Real=0.0)
 
+    er >= 0 || error("Error must be positive")
+
     lchain = length(tn.tensors)
-    (! any([isequal(Summation([lchain=>3, 1=>1]), s) for s in tn.contractions])) & (! any([isequal(Summation([1=>1, lchain=>3]), s) for s in tn.contractions]))  || error("Function don't support periodic boundary conditions for now")
+    (! any([Summation([lchain=>3, 1=>1]) == s for s in tn.contractions])) && (! any([Summation([1=>1, lchain=>3]) == s for s in tn.contractions]))  || error("Function doesn't support periodic boundary conditions for now")
     tcontract = tn.tensors[1]
     for j in 2:lchain
         tcontract = contract_svd(tcontract, tn.tensors[j], (ndims(tcontract),1) , er=er)

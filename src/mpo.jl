@@ -97,31 +97,22 @@ struct MPO <: TensorNetwork
 end
 
 """
-    shift_summation(S::Summation, step)
-
-Shift the first element of both pairs in summation `S` by `step`
-"""
-function shift_summation(S::Summation, step)
-   return Summation([S.idx[i].first + step => S.idx[i].second for i in 1:2])
-end
-
-"""
-    shift_pair(P::Pair, step)
-
-Shift the first element of pair `P`  by `step`
-"""
-function shift_pair(P::Pair, step)
-    return P.first + step => P.second
-end
-
-"""
-    circuit_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
+    extend_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
 
 Extend an operator `MPO` acting on `M` qudits into an operator acting on `N` qudits by inserting identities.
+...
+# Arguments
+- `iwire::NTuple{M, <:Integer}`: qudits in which `MPO` acts. It must be sorted.
+...
+
 """
 
-function circuit_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
+function extend_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
+
+    length(unique(iwire)) == length(iwire) || error("Repeated wires are not valid.")
     collect(iwire) == sort(collect(iwire)) || @error("Wires not sorted")
+    prod(0 .< iwire) || error("Wires must be positive integers.")
+
     N = length(iwire[1]:iwire[end])
     @assert length(mpo.tensors) == M
 
@@ -152,14 +143,20 @@ function circuit_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
 end
 
 """
-    circuit_MPO(m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
+    extend_MPO(m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
 
-Extend an operator represented by a matrix `m` acting on `M`
-qudits into an operator acting on `N` qudits by inserting identities.
+Extend an operator represented by a matrix `m` acting on `M` qudits into an operator acting on `N` qudits by inserting identities.
+...
+# Arguments
+- `iwire::NTuple{M, <:Integer}`: qudits in which `m` acts. It must be sorted.
+...
 """
-function circuit_MPO(m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
+
+function extend_MPO(m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
+    length(unique(iwire)) == length(iwire) || error("Repeated wires are not valid.")
+    prod(0 .< iwire) || error("Wires must be positive integers.")
     collect(iwire) == sort(collect(iwire)) || @error("Wires not sorted")
-return circuit_MPO(MPO(m), iwire)
+return extend_MPO(MPO(m), iwire)
 end
 
 
@@ -167,10 +164,20 @@ end
     apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) where M
 
 Given a state `ψ`  in a Tensor Network form and an operator `mpo` acting on `M` qudits, update the state by effectively applying `mpo`.
+...
+# Arguments
+- `iwire::NTuple{M, <:Integer}`: qudits in which `MPO` acts. When the input is `mpo::MPO`, `iwires` must be sorted.
+...
 """
 
 function apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) where M
+
+    length(unique(iwire)) == length(iwire) || error("Repeated wires are not valid.")
+
     n = length(ψ.openidx) #number of qudits
+
+    prod(0 .< iwire .<= n) || error("Wires must be integers between 1 and n (total number of qudits).")
+
     step = length(ψ.tensors)
     qwire = (iwire[1]:iwire[end]...,)
     N = length(qwire)
@@ -178,7 +185,7 @@ function apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) whe
     d = 2
 
     if M < N
-        mpo = circuit_MPO(mpo, Tuple(iwire))
+        mpo = extend_MPO(mpo, Tuple(iwire))
     end
 
     ψ_prime = GeneralTensorNetwork([copy(ψ.tensors); copy(mpo.tensors)],
@@ -199,8 +206,16 @@ end
     apply_MPO(ψ::TensorNetwork, m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
 
 Given a state `ψ`  in a Tensor Network form and an operator represented by a matrix `m` acting on `M` qudits, update the state by effectively applying `m`.
+...
+# Arguments
+- `iwire::NTuple{M, <:Integer}`: qudits in which `MPO` acts. It does not need to be sorted; in this case, the function performs the corresponding permutation
+of the dimensions.
+...
 """
 function apply_MPO(ψ::TensorNetwork, m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
+    length(unique(iwire)) == length(iwire) || error("Repeated wires are not valid.")
+    prod(0 .< iwire) || error("Wires must be positive integers.")
+
     iwire_sorted = sort(collect(iwire))
     if iwire_sorted != collect(iwire)
         sort_wires = sortperm(collect(iwire))
@@ -219,10 +234,14 @@ end
 """
     apply_MPO(ψ::TensorNetwork, cg::CircuitGate)
 
-Given a state `ψ`  in a Tensor Network form and CircuitGate `cg`, update the state by effectively applying `m`.
+Given a state `ψ`  in a Tensor Network form and CircuitGate `cg`, update the state by effectively applying `cg`.
 """
 function apply_MPO(ψ::TensorNetwork, cg::CircuitGate)
     m = (cg.gate).matrix
     iwire = cg.iwire
 return apply_MPO(ψ, m, iwire)
+end
+
+function Base.isapprox(mpo1::MPO, mpo2::MPO)
+    all(mpo1.tensors .≈ mpo2.tensors) && all(all(mpo1.contractions .== mpo2.contractions)) && all(mpo1.openidx == mpo2.openidx)
 end

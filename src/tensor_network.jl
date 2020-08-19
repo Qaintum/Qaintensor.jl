@@ -55,3 +55,7 @@ function contract(net::TensorNetwork)
     # for now simply forward the contraction operation to 'ncon'
     return TensorOperations.ncon([t.data for t in net.tensors], indexlist)
 end
+
+function Base.:(==)(S1::Summation, S2::Summation)
+    S1.idx == S2.idx
+end
