@@ -48,6 +48,12 @@ export
 
 include("helper.jl")
 
+include("binary_tree.jl")
+export
+    binary_tree
+
+include("helper_binary_tree.jl")
+
 # re-export definitions from Qaintessent.jl
 
 # gates

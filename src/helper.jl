@@ -15,3 +15,15 @@ Shift the first element of pair `P`  by `step`.
 function shift_pair(P::Pair, step)
     return P.first + step => P.second
 end
+
+"""
+   nqubits(ψ::AbstractVector)
+
+Given a vector `ψ` that represents a quantum state,
+return the number of qubits `N` of the state.
+"""
+
+function nqubits(ψ::AbstractVector)
+    N = Int(log2(length(ψ)))
+    return N
+end
