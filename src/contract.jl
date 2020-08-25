@@ -20,8 +20,8 @@ function contract_rep(net::TensorNetwork)
         # tensor leg must not participate in a contraction
         @assert indexlist[oi.first][oi.second] == 0
         # last qubit corresponds to fastest varying index
-        indexlist[oi.first][oi.second] = i - length(net.openidx) - 1 - j
-        leg_costs[abs(i - length(net.openidx) - 1 -j)] = size(net.tensors[oi.first])[oi.second]
+        indexlist[oi.first][oi.second] =  - i - j
+        leg_costs[abs(-i -j)] = size(net.tensors[oi.first])[oi.second]
     end
     # consistency check
     for idx in indexlist, i in idx
