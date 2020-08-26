@@ -11,8 +11,6 @@ using Qaintessent
 # for extensive check of the random tests increase the following parameter
 samples_per_test = 1
 
-Base.copy(net::TensorNetwork) = TensorNetwork(copy(net.tensors), copy(net.contractions), copy(net.openidx))
-
 """
     random_TN(Nn, Ne)
 
@@ -29,7 +27,7 @@ function random_TN(Nn, Ne)
         push!(contractions, Summation([n1 => nlegs[n1], n2 => nlegs[n2]]))
     end
     tensors = Tensor.([n > 0 ? rand(fill(2, n)...) : rand(1) for n in nlegs])
-    return TensorNetwork(tensors, contractions, Pair{Integer,Integer}[])
+    return GeneralTensorNetwork(tensors, contractions, Pair{Integer,Integer}[])
 end
 
 """
@@ -48,7 +46,7 @@ function test_setup()
                                [3=>2, 4=>1],
                                [4=>2, 1=>1]])
     openidx = Pair[]
-    TN0 = TensorNetwork(tensors, contractions, openidx)
+    TN0 = GeneralTensorNetwork(tensors, contractions, openidx)
 end
 
 
@@ -347,34 +345,6 @@ end
             @test Set(net.contractions) == Set(net0.contractions)
         end
     end
-
-    # Test on expectation-valued MPS
-    # TODO:
-    # BEGIN DELETE: this code is copied from the `mps` branch; delete when merged
-
-    function ClosedMPS(T::AbstractVector{Tensor})
-        l = length(T)
-        @assert ndims(T[1]) == 2
-        for i in 2:l-1
-            @assert ndims(T[i]) == 3
-        end
-         @assert ndims(T[l]) == 2
-
-        contractions = [Summation([1 => 2, 2 => 1]); [Summation([i => 3,i+1 => 1]) for i in 2:l-1]]
-        openidx = reverse([1 => 1; [i => 2 for i in 2:l]])
-        tn = TensorNetwork(T, contractions, openidx)
-        return tn
-    end
-
-
-    function shift_summation(S::Summation, step)
-       return Summation([S.idx[i].first + step => S.idx[i].second for i in 1:2])
-    end
-
-    # END DELETE
-
-    Base.ndims(T::Tensor) = ndims(T.data)
-    Base.copy(net::TensorNetwork) = TensorNetwork(copy(net.tensors), copy(net.contractions), copy(net.openidx))
     crand(dims...) = rand(ComplexF64, dims...)
 
     # generate expectation value tensor network
@@ -388,7 +358,7 @@ end
         tensor_circuit!(T, cgc, is_decompose = is_decompose)
 
         # measure
-        T.contractions = [T.contractions; shift_summation.(T0.contractions, length(T.tensors))]
+        T.contractions = [T.contractions; Qaintensor.shift_summation.(T0.contractions, length(T.tensors))]
         for i in 1:N
             push!(T.tensors, T0.tensors[N+1-i])
             push!(T.contractions, Summation([T.openidx[end], (length(T.tensors) => T0.openidx[N+1-i].second)]))
