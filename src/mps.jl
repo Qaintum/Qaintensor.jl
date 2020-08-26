@@ -4,7 +4,7 @@
 Subclassed TensorNetwork object in Matrix-Product-State(MPS) form. Tensor objects must have each have a maximum of three legs and are ordered
 such that each Tensor object only connects to the Tensor object before and after with 1 leg each.
 """
-struct MPS <: TensorNetwork
+mutable struct MPS <: TensorNetwork
     # list of tensors
     tensors::AbstractVector{Tensor}
     # contractions, specified as list of summations
@@ -199,3 +199,5 @@ function contract_svd_mps(tn::MPS; er::Real=0.0)
     end
     return tcontract.data
 end
+
+Base.copy(net::MPS) = MPS(copy(net.tensors), copy(net.contractions), copy(net.openidx))
