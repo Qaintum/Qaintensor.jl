@@ -45,6 +45,6 @@ end
     @test_throws ErrorException("Error must be positive") contract(tn1) ≈ contract_svd(t1, t2, (1,3); er=-0.3).data
 
     t2_short = Tensor(rand(ComplexF64, 8,8))
-    @test_throws ErrorException("Dimensions of contraction legs do not match") contract(tn1) ≈ contract_svd(t1, t2, (1,3)).data
-    @test contract(tn2) ≈ contract_svd(t1, t2_short, (3,4)).data
+    @test_throws ErrorException("Dimensions of contraction legs do not match") contract(tn1) ≈ contract_svd(t1, t2_short, (1,3)).data
+    @test contract(tn2) ≈ contract_svd(t1, t2, (3,4)).data
 end

@@ -20,7 +20,7 @@ using Qaintessent
 end
 
 @testset ExtendedTestSet "is_power_two" begin
-    N = rand(Int, 1:10)
-    @test is_power_two(2^N)
-    @test !is_power_two(2^N-1)
+    N = rand(1:10)
+    @test Qaintensor.is_power_two(2^N)
+    @test !Qaintensor.is_power_two(2^N-1)
 end
