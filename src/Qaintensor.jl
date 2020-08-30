@@ -54,6 +54,9 @@ export
 
 include("helper_binary_tree.jl")
 
+include("mpo_binary_tree.jl")
+export
+    apply_MPO_binarytree
 # re-export definitions from Qaintessent.jl
 
 # gates

@@ -1,5 +1,6 @@
 using Test
 using TestSetExtensions
+using LinearAlgebra
 using Qaintensor
 
 @testset ExtendedTestSet "binary_tree" begin
