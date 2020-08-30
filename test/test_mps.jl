@@ -13,6 +13,23 @@ using Random
 
     @test mps_contract ≈ mps_svd
     @test_throws ErrorException("Function doesn't support periodic boundary conditions for now") contract_svd_mps(PeriodicMPS(T, 3); er=0.0)
+    @test_throws ErrorException("Error must be positive") contract_svd_mps(mps; er=-0.5)
+end
+
+@testset ExtendedTestSet "mps exceptions" begin
+    tensors = [Tensor(rand(2,2,2)), Tensor(rand(2,2,2))]
+    openidx = [1=>2, 2=>2]
+
+    contractions = [Summation([1=>1, 2=>3])]
+    @test_throws ErrorException("Tensor objects first leg must contract with last leg of previous Tensor object") MPS(tensors, contractions, openidx)
+
+    contractions = [Summation([1=>3, 2=>3])]
+    @test_throws ErrorException("Tensor objects last leg must contract with first leg of next Tensor object") MPS(tensors, contractions, openidx )
+
+    tensors = [Tensor(rand(2,2,2,2)), Tensor(rand(2,2,2))]
+    contractions = [Summation([1=>4, 2=>1])]
+    openidx = [1=>2, 2=>2]
+    @test_throws ErrorException("Each Tensor object in MPS form can only have 2 or 3 legs") MPS(tensors, contractions, openidx)
 end
 
 @testset ExtendedTestSet "check_mps exceptions" begin
@@ -96,8 +113,13 @@ end
     @test mps_contract ≈ mps_svd
 end
 
-@testset ExtendedTestSet "closed_mps" begin
+@testset ExtendedTestSet "open_mps exceptions" begin
+    tensors = [Tensor(rand(2,2,2,2)), Tensor(rand(2,2,2,2))]
+    @test_throws ErrorException("Tensors must have 3 legs") OpenMPS(tensors)
+    @test_throws ErrorException("Tensors must have 3 legs") OpenMPS(Tensor(rand(2,2,2,2)), 3)
+end
 
+@testset ExtendedTestSet "closed_mps" begin
     T1 = Tensor(rand(2,5))
     T2 = Tensor(rand(5,2,3))
     T3 = Tensor(rand(3,2))
@@ -110,7 +132,17 @@ end
     @test mps_contract ≈ mps_svd
 end
 
-@testset ExtendedTestSet "periodic_mps" begin
+@testset ExtendedTestSet "closed_mps exceptions" begin
+    T1 = Tensor(rand(2,2,2))
+    T2 = Tensor(rand(2,2,2,2))
+    T3 = Tensor(rand(2,2))
+
+    @test_throws ErrorException("First tensor must have 2 legs") ClosedMPS([T1, T1, T3])
+    @test_throws ErrorException("Tensors must have 3 legs, except the first and last one") ClosedMPS([T3, T2, T3])
+    @test_throws ErrorException("Last tensor must have 2 legs") ClosedMPS([T3, T1, T2])
+end
+
+@testset ExtendedTestSet "periodic_mps exceptions" begin
     T = Tensor(rand(2,2,2))
     mps = PeriodicMPS(T, 3)
     @test_throws ErrorException contract_svd_mps(mps, er=0.0)

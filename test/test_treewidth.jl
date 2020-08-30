@@ -354,7 +354,7 @@ end
         tensors = Tensor.([crand(2,2), [crand(2,2,2) for i in 2:N-1]..., crand(2,2)])
         T0 = ClosedMPS(tensors)
 
-        T = copy(T0)
+        T = GeneralTensorNetwork(copy(T0.tensors), copy(T0.contractions), copy(T0.openidx))
         tensor_circuit!(T, cgc, is_decompose = is_decompose)
 
         # measure

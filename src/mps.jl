@@ -16,12 +16,12 @@ mutable struct MPS <: TensorNetwork
         # Checks to ensure MPS is in correct form, ensure that contractions are ordered correctly
         for (i, id) in enumerate(contractions)
             @assert length(id.idx) == 2
-            (id.idx[1].second == 3) || error("Tensor objects first leg must contract with last leg of previous Tensor object. ")
-            (id.idx[2].second == 1) || error("Tensor objects last leg must contract with first leg of next Tensor object. ")
+            (id.idx[1].second == ndims(tensors[id.idx[1].first])) || error("Tensor objects first leg must contract with last leg of previous Tensor object")
+            (id.idx[2].second == 1) || error("Tensor objects last leg must contract with first leg of next Tensor object")
         end
 
         for tensor in tensors
-            length(size(tensor)) <= 3 || length(size(tensor)) >= 2 || error("Each Tensor object in MPS form can only have 2 or 3 legs")
+            length(size(tensor)) <= 3 & length(size(tensor)) >= 2 || error("Each Tensor object in MPS form can only have 2 or 3 legs")
         end
 
         new(tensors, contractions, openidx)
@@ -99,7 +99,7 @@ those on the boundaries).
 function OpenMPS(T::AbstractVector{Tensor})
     l = length(T)
     for i in 1:l
-        @assert ndims(T[i]) == 3
+        ndims(T[i]) == 3 || error("Tensors must have 3 legs")
     end
 
     contractions = [Summation([i => 3,i+1 => 1]) for i in 1:l-1]
@@ -129,11 +129,11 @@ boundaries that have only one virtual leg).
 """
 function ClosedMPS(T::AbstractVector{Tensor})
     l = length(T)
-    @assert ndims(T[1]) == 2
+    ndims(T[1]) == 2 || error("First tensor must have 2 legs")
     for i in 2:l-1
-        @assert ndims(T[i]) == 3
+        ndims(T[i]) == 3 || error("Tensors must have 3 legs, except the first and last one")
     end
-     @assert ndims(T[l]) == 2
+    ndims(T[l]) == 2 || error("Last tensor must have 2 legs")
 
     contractions = [Summation([1 => 2, 2 => 1]); [Summation([i => 3,i+1 => 1]) for i in 2:l-1]]
     openidx = reverse([1 => 1; [i => 2 for i in 2:l]])
