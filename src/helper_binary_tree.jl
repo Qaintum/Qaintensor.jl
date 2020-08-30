@@ -17,6 +17,7 @@ end
 
 """
     layer(j, w)
+    
 Return the layer to which node `j` belongs in a tree of `w` layers.
 """
 function layer(j, w)
