@@ -50,15 +50,20 @@ end
     push!(ψ.openidx, 2=>1)
     push!(ψ.openidx, 3=>1)
 
-    cg = controlled_circuit_gate((3), (1), Z, N)
-    cgc = CircuitGateChain{N}([cg])
+    cg = [
+        controlled_circuit_gate((3), (1), X, N),
+        controlled_circuit_gate((3), (1), Y, N),
+        controlled_circuit_gate((1), (2), Y, N),
+        controlled_circuit_gate((2), (1), Z, N)
+            ]
+    cgc = CircuitGateChain{N}(cg)
     ψref = apply(cgc, contract(ψ)[:])
 
-    tensor_circuit!(ψ, cgc, is_decompose=true)
+    tensor_circuit!(ψ, cgc; is_decompose=true)
 
     @test ψref ≈ contract(ψ)[:]
 end
-
+#
 @testset ExtendedTestSet "decompose 3-qubit" begin
     # Test decomposition of 3-qubit gate
     N = 4
@@ -81,14 +86,15 @@ end
 
     cgc = CircuitGateChain{N}([
     controlled_circuit_gate((3), (4,1), SwapGate(), N),
+    single_qubit_circuit_gate(2, YGate(), N),
     controlled_circuit_gate((1), (3), XGate(), N),
     single_qubit_circuit_gate(2, YGate(), N),
+    controlled_circuit_gate((1,2), 4, X, N),
     single_qubit_circuit_gate(3, ZGate(), N),
     ])
     ψref = apply(cgc, contract(ψ)[:])
 
-    tensor_circuit!(ψ, cgc, is_decompose=true)
+    tensor_circuit!(ψ, cgc; is_decompose=true)
 
     @test ψref ≈ contract(ψ)[:]
-
 end

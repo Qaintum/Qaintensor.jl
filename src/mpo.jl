@@ -5,7 +5,7 @@ using LinearAlgebra
 
 Subclassed TensorNetwork object in Matrix Product Operator(MPO) form.
 """
-struct MPO <: TensorNetwork
+mutable struct MPO <: TensorNetwork
     # list of tensors
     tensors::AbstractVector{Tensor}
     # contractions, specified as list of summations

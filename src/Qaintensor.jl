@@ -12,7 +12,12 @@ include("tensor_network.jl")
 export
     GeneralTensorNetwork,
     TensorNetwork,
-    Summation,
+    Summation
+    
+include("helper.jl")
+
+include("contract.jl")
+export
     contract
 
 include("decompose.jl")
@@ -46,7 +51,11 @@ include("switch.jl")
 export
     switch!
 
-include("helper.jl")
+include("network2graph.jl")
+export
+    network_graph,
+    line_graph,
+    optimize_contraction_order!
 
 # re-export definitions from Qaintessent.jl
 

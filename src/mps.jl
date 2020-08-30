@@ -4,7 +4,7 @@
 Subclassed TensorNetwork object in Matrix-Product-State(MPS) form. Tensor objects must have each have a maximum of three legs and are ordered
 such that each Tensor object only connects to the Tensor object before and after with 1 leg each.
 """
-struct MPS <: TensorNetwork
+mutable struct MPS <: TensorNetwork
     # list of tensors
     tensors::AbstractVector{Tensor}
     # contractions, specified as list of summations
@@ -35,25 +35,16 @@ Run checks on MPS object to ensure that structure has not been changed.
 """
 
 function check_mps(mps::MPS)
+    for tensor in mps.tensors
+        length(size(tensor)) in [2,3] || error("Each Tensor object in MPS form can only have 2 or 3 legs")
+    end
+
     for (i, id) in enumerate(mps.contractions)
         @assert length(id.idx) == 2
-        (id.idx[1].second == 3) || "Tensor objects first leg must contract with last leg of previous Tensor object. "
-        (id.idx[2].second == 1) || "Tensor objects last leg must contract with first leg of next Tensor object. "
+        tensor_size = length(size(mps.tensors[id.idx[1].first]))
+        (id.idx[1].second == tensor_size) || error("Tensor objects first leg must contract with last leg of previous Tensor object")
+        (id.idx[2].second == 1) || error("Tensor objects last leg must contract with first leg of next Tensor object")
     end
-
-    for tensor in mps.tensors
-        length(size(tensor)) <= 3 || length(size(tensor)) >= 2 || "Each Tensor object in MPS form can only have 2 or 3 legs"
-    end
-end
-
-"""
-    is_power_two(i::Integer)
-
-Return true if i is a power of 2, else false.
-"""
-function is_power_two(i::Integer)
-    i != 0 || return false
-    return (i & (i - 1)) == 0
 end
 
 """
@@ -208,3 +199,5 @@ function contract_svd_mps(tn::MPS; er::Real=0.0)
     end
     return tcontract.data
 end
+
+Base.copy(net::MPS) = MPS(copy(net.tensors), copy(net.contractions), copy(net.openidx))
