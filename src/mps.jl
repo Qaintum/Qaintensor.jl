@@ -16,12 +16,12 @@ struct MPS <: TensorNetwork
         # Checks to ensure MPS is in correct form, ensure that contractions are ordered correctly
         for (i, id) in enumerate(contractions)
             @assert length(id.idx) == 2
-            (id.idx[1].second == 3) || "Tensor objects first leg must contract with last leg of previous Tensor object. "
-            (id.idx[2].second == 1) || "Tensor objects last leg must contract with first leg of next Tensor object. "
+            (id.idx[1].second == 3) || error("Tensor objects first leg must contract with last leg of previous Tensor object. ")
+            (id.idx[2].second == 1) || error("Tensor objects last leg must contract with first leg of next Tensor object. ")
         end
 
         for tensor in tensors
-            length(size(tensor)) <= 3 || length(size(tensor)) >= 2 || "Each Tensor object in MPS form can only have 2 or 3 legs"
+            length(size(tensor)) <= 3 || length(size(tensor)) >= 2 || error("Each Tensor object in MPS form can only have 2 or 3 legs")
         end
 
         new(tensors, contractions, openidx)
