@@ -269,3 +269,17 @@ end
     @test_throws BoundsError switch!(mps, 7)
     @test_throws BoundsError switch!(mps, -2)
 end
+
+@testset ExtendedTestSet "copy" begin
+    T1 = Tensor(rand(2,5))
+    T2 = Tensor(rand(5,2,3))
+    T3 = Tensor(rand(3,2))
+    mps = ClosedMPS([T1, T2, T3])
+
+    copy_mps = copy(mps)
+
+    @test (copy_mps.tensors == mps.tensors) & (copy_mps.contractions == mps.contractions) & (copy_mps.openidx == mps.openidx)
+    
+    mps.tensors[1] = Tensor(rand(2,5))
+    @test mps.tensors != copy_mps.tensors
+end
