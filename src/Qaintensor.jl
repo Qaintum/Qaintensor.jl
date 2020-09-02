@@ -10,8 +10,11 @@ export
 
 include("tensor_network.jl")
 export
+    GeneralTensorNetwork,
     TensorNetwork,
     Summation
+    
+include("helper.jl")
 
 include("contract.jl")
 export
@@ -25,12 +28,34 @@ include("tensor_circuit.jl")
 export
     tensor_circuit!
 
+include("svd.jl")
+export
+    contract_svd
+
+include("mps.jl")
+export
+    MPS,
+    OpenMPS,
+    PeriodicMPS,
+    ClosedMPS,
+    contract_svd_mps,
+    check_mps
+
+include("mpo.jl")
+export
+    MPO,
+    extend_MPO,
+    apply_MPO
+
+include("switch.jl")
+export
+    switch!
+
 include("network2graph.jl")
 export
     network_graph,
     line_graph,
     optimize_contraction_order!
-
 
 # re-export definitions from Qaintessent.jl
 

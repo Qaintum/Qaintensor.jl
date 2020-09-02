@@ -7,11 +7,19 @@ struct Summation
     idx::AbstractVector{Pair{Integer,Integer}}
 end
 
+function Base.:(==)(S1::Summation, S2::Summation)
+    S1.idx == S2.idx
+end
 
 """
-Tensor network, consisting of tensors and contraction operations
+Abstract struct representing TensorNetwork
 """
-mutable struct TensorNetwork
+abstract type TensorNetwork end
+
+"""
+General Tensor network, consisting of tensors and contraction operations
+"""
+mutable struct GeneralTensorNetwork <: TensorNetwork
     # list of tensors
     tensors::AbstractVector{Tensor}
     # contractions, specified as list of summations
@@ -19,3 +27,5 @@ mutable struct TensorNetwork
     # ordered "open" (uncontracted) indices (list of tensor and leg indices)
     openidx::AbstractVector{Pair{Integer,Integer}}
 end
+
+Base.copy(net::GeneralTensorNetwork) = GeneralTensorNetwork(copy(net.tensors), copy(net.contractions), copy(net.openidx))
