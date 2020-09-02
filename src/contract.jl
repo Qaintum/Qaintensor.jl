@@ -42,11 +42,12 @@ function contract_rep(net::TensorNetwork)
             indexlist[j.first][j.second] = i
         end
     end
+    j = length(net.contractions)
     for (i, oi) in enumerate(net.openidx)
         # tensor leg must not participate in a contraction
         @assert indexlist[oi.first][oi.second] == 0
         # last qubit corresponds to fastest varying index
-        indexlist[oi.first][oi.second] = i - length(net.openidx) - 1
+        indexlist[oi.first][oi.second] =  - i - j
     end
     # consistency check
     for idx in indexlist, i in idx
