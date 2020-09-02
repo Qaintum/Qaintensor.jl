@@ -16,22 +16,6 @@ using Random
     @test_throws ErrorException("Error must be positive") contract_svd_mps(mps; er=-0.5)
 end
 
-@testset ExtendedTestSet "mps exceptions" begin
-    tensors = [Tensor(rand(2,2,2)), Tensor(rand(2,2,2))]
-    openidx = [1=>2, 2=>2]
-
-    contractions = [Summation([1=>1, 2=>3])]
-    @test_throws ErrorException("Tensor objects first leg must contract with last leg of previous Tensor object") MPS(tensors, contractions, openidx)
-
-    contractions = [Summation([1=>3, 2=>3])]
-    @test_throws ErrorException("Tensor objects last leg must contract with first leg of next Tensor object") MPS(tensors, contractions, openidx )
-
-    tensors = [Tensor(rand(2,2,2,2)), Tensor(rand(2,2,2))]
-    contractions = [Summation([1=>4, 2=>1])]
-    openidx = [1=>2, 2=>2]
-    @test_throws ErrorException("Each Tensor object in MPS form can only have 2 or 3 legs") MPS(tensors, contractions, openidx)
-end
-
 @testset ExtendedTestSet "check_mps exceptions" begin
     T = Tensor(rand(2,2,2))
     mps = OpenMPS(T, 3)
@@ -99,6 +83,22 @@ end
     tensor_circuit!(ψ, cgc)
 
     @test ψref ≈ contract(ψ)[:]
+end
+
+@testset ExtendedTestSet "mps exceptions" begin
+    tensors = [Tensor(rand(2,2,2)), Tensor(rand(2,2,2))]
+    openidx = [1=>2, 2=>2]
+
+    contractions = [Summation([1=>1, 2=>3])]
+    @test_throws ErrorException("Tensor objects first leg must contract with last leg of previous Tensor object") MPS(tensors, contractions, openidx)
+
+    contractions = [Summation([1=>3, 2=>3])]
+    @test_throws ErrorException("Tensor objects last leg must contract with first leg of next Tensor object") MPS(tensors, contractions, openidx )
+
+    tensors = [Tensor(rand(2,2,2,2)), Tensor(rand(2,2,2))]
+    contractions = [Summation([1=>4, 2=>1])]
+    openidx = [1=>2, 2=>2]
+    @test_throws ErrorException("Each Tensor object in MPS form can only have 2 or 3 legs") MPS(tensors, contractions, openidx)
 end
 
 @testset ExtendedTestSet "open_mps" begin
@@ -279,7 +279,7 @@ end
     copy_mps = copy(mps)
 
     @test (copy_mps.tensors == mps.tensors) & (copy_mps.contractions == mps.contractions) & (copy_mps.openidx == mps.openidx)
-    
+
     mps.tensors[1] = Tensor(rand(2,5))
     @test mps.tensors != copy_mps.tensors
 end
