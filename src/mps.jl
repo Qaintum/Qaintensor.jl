@@ -63,7 +63,7 @@ function MPS(ψ::AbstractVector{ComplexF64})
     S, V, D = svd(ψ)
 
     push!(tensors, Tensor(S))
-    pushfirst!(openidx, 1=>1)
+    push!(openidx, 1=>1)
     lbond = length(V)
     ψ = diagm(V) * adjoint(D)
     lastbit = 2
@@ -76,14 +76,14 @@ function MPS(ψ::AbstractVector{ComplexF64})
         ψ = diagm(S) * adjoint(V)
         push!(tensors, Tensor(reshape(U, (lbond, 2, rbond))))
         push!(contractions, Summation([bit-1=>lastbit, bit=>1]))
-        pushfirst!(openidx, bit=>2)
+        push!(openidx, bit=>2)
         lbond = rbond
         lastbit = 3
     end
 
     push!(tensors, Tensor(ψ))
     push!(contractions, Summation([M-1=>lastbit, M=>1]))
-    pushfirst!(openidx, M=>2)
+    push!(openidx, M=>2)
 
     MPS(tensors, contractions, openidx)
 end
@@ -103,7 +103,7 @@ function OpenMPS(T::AbstractVector{Tensor})
     end
 
     contractions = [Summation([i => 3,i+1 => 1]) for i in 1:l-1]
-    openidx = reverse([1 => 1; [i => 2 for i in 1:l]; l => 3])
+    openidx = [1 => 1; [i => 2 for i in 1:l]; l => 3]
     tn = MPS(T, contractions, openidx)
     return tn
 end
@@ -136,7 +136,7 @@ function ClosedMPS(T::AbstractVector{Tensor})
     ndims(T[l]) == 2 || error("Last tensor must have 2 legs")
 
     contractions = [Summation([1 => 2, 2 => 1]); [Summation([i => 3,i+1 => 1]) for i in 2:l-1]]
-    openidx = reverse([1 => 1; [i => 2 for i in 2:l]])
+    openidx = [1 => 1; [i => 2 for i in 2:l]]
     tn = MPS(T, contractions, openidx)
     return tn
 end
@@ -166,7 +166,7 @@ function PeriodicMPS(T::AbstractVector{Tensor})
     end
 
     contractions = [[Summation([i => 3,i+1 => 1]) for i in 1:l-1]; Summation([l => 3, 1 => 1])]
-    openidx = reverse([i => 2 for i in 1:l])
+    openidx = [i => 2 for i in 1:l]
     tn = MPS(T, contractions, openidx)
     return tn
 end
