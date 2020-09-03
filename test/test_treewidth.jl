@@ -49,7 +49,6 @@ function test_setup()
     TN0 = GeneralTensorNetwork(tensors, contractions, openidx)
 end
 
-
 @testset ExtendedTestSet "subset function" begin
     A = [1,2,3]
     B = [1,2,3,4]
@@ -346,7 +345,7 @@ end
         end
     end
     crand(dims...) = rand(ComplexF64, dims...)
-
+    #
     # generate expectation value tensor network
     """ Compute the expectation value of a random MPS when run through circuit `cgc`"""
     function expectation_value(cgc::CircuitGateChain{N}; is_decompose = false) where N
@@ -360,9 +359,9 @@ end
         # measure
         T.contractions = [T.contractions; Qaintensor.shift_summation.(T0.contractions, length(T.tensors))]
         for i in 1:N
-            push!(T.tensors, T0.tensors[N+1-i])
-            push!(T.contractions, Summation([T.openidx[end], (length(T.tensors) => T0.openidx[N+1-i].second)]))
-            pop!(T.openidx)
+            push!(T.tensors, T0.tensors[i])
+            push!(T.contractions, Summation([T.openidx[1], (length(T.tensors) => T0.openidx[i].second)]))
+            popfirst!(T.openidx)
         end
         T
     end
