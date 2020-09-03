@@ -10,13 +10,13 @@ using Random
     t = contract_svd(Tensor(t1),Tensor(t2), (2,1))
     @test t.data ≈ t1*t2
 
-    t1 = Tensor(rand(ComplexF64, 2,3,4,2))
+    t1 = Tensor(rand(ComplexF64, 2,3,4,6))
     t2 = Tensor(rand(ComplexF64, 1,5,2,4))
 
     con1 = Summation([1 => 1, 2 => 3])
     con2 = Summation([1 => 3, 2 => 4])
-    open1 = reverse([1 => 2, 1 => 3, 1 => 4, 2 => 1, 2 => 2, 2 => 4])
-    open2 = reverse([1 => 1, 1 => 2, 1 => 4, 2 => 1, 2 => 2, 2 => 3])
+    open1 = [1 => 2, 1 => 3, 1 => 4, 2 => 1, 2 => 2, 2 => 4]
+    open2 = [1 => 1, 1 => 2, 1 => 4, 2 => 1, 2 => 2, 2 => 3]
 
     tn1 = GeneralTensorNetwork([t1,t2], [con1], open1)
     tn2 = GeneralTensorNetwork([t1,t2], [con2], open2)
@@ -36,8 +36,8 @@ end
 
     con1 = Summation([1 => 1, 2 => 3])
     con2 = Summation([1 => 3, 2 => 4])
-    open1 = reverse([1 => 2, 1 => 3, 1 => 4, 2 => 1, 2 => 2, 2 => 4])
-    open2 = reverse([1 => 1, 1 => 2, 1 => 4, 2 => 1, 2 => 2, 2 => 3])
+    open1 = [1 => 2, 1 => 3, 1 => 4, 2 => 1, 2 => 2, 2 => 4]
+    open2 = [1 => 1, 1 => 2, 1 => 4, 2 => 1, 2 => 2, 2 => 3]
 
     tn1 = GeneralTensorNetwork([t1,t2], [con1], open1)
     tn2 = GeneralTensorNetwork([t1,t2], [con2], open2)
