@@ -94,6 +94,15 @@ mutable struct MPO <: TensorNetwork
     function MPO(cg::AbstractGate)
         MPO(Qaintessent.matrix(cg))
     end
+
+    """
+        MPO(cg::CircuitGate)
+
+    Transform an operator represented by a gate `cg` into an `MPO` form.
+    """
+    function MPO(cg::AbstractCircuitGate)
+        MPO(Qaintessent.matrix(cg))
+    end
 end
 
 """
@@ -174,13 +183,15 @@ function apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) whe
 
     length(unique(iwire)) == length(iwire) || error("Repeated wires are not valid.")
 
+    # sort([iwire...]) == [iwire...] || error("Input 'iwires must be sorted'")
+
     n = length(ψ.openidx) #number of qudits
 
     prod(0 .< iwire .<= n) || error("Wires must be integers between 1 and n (total number of qudits).")
 
     step = length(ψ.tensors)
-    qwire = (iwire[1]:iwire[end]...,)
-    N = length(qwire)
+    # qwire = (iwire[1]:iwire[end]...,)
+    N = length(iwire)
     # TODO: support general "qudits"
     d = 2
 
@@ -192,11 +203,11 @@ function apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) whe
                         [copy(ψ.contractions); shift_summation.(mpo.contractions, step)],
                         copy(ψ.openidx))
     #add the contractions between mpo and state
-    for (i,w) in enumerate(qwire)
+    for (i,w) in enumerate(iwire)
         push!(ψ_prime.contractions, Summation([ψ.openidx[w], shift_pair(mpo.openidx[i+N], step)]))
     end
     #update the openidx
-    for (i,q) in enumerate(qwire)
+    for (i,q) in enumerate(iwire)
         ψ_prime.openidx[q] = shift_pair(mpo.openidx[i], step)
     end
     return ψ_prime
