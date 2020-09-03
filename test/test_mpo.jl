@@ -22,74 +22,89 @@ function random_mps(N)
     return ClosedMPS(Tensor.(mps));
 end
 
-@testset ExtendedTestSet "mpo" begin
-    N = 2
-    A = rand(ComplexF64, 2^N ,2^N)
-    U, R = qr(A)
-    U = Array(U);
-    mpo = MPO(U)
-    @test length(mpo.tensors) == N
-
-    GU = MatrixGate(U);
-    mpo_gate = MPO(GU)
-    @test mpo ≈ mpo_gate
-
-end
-
-@testset ExtendedTestSet "extend_MPO" begin
-    A = rand(ComplexF64, 2 ,2)
-    B = rand(ComplexF64, 2 ,2)
-    U1 = kron(kron(A, Matrix(1I, 2,2)), B)
-    U2 = kron(A,B)
-    @test contract(MPO(U1)) ≈ contract(extend_MPO(U2, (1,3)))
-    @test contract(MPO(U1)) ≈ contract(extend_MPO(MPO(U2), (1,3)))
-end
+# @testset ExtendedTestSet "mpo" begin
+#     N = 2
+#     A = rand(ComplexF64, 2^N ,2^N)
+#     U, R = qr(A)
+#     U = Array(U);
+#     mpo = MPO(U)
+#     @test length(mpo.tensors) == N
+#
+#     GU = MatrixGate(U);
+#     mpo_gate = MPO(GU)
+#     @test mpo ≈ mpo_gate
+#
+# end
+#
+# @testset ExtendedTestSet "extend_MPO" begin
+#     A = rand(ComplexF64, 2 ,2)
+#     B = rand(ComplexF64, 2 ,2)
+#     U1 = kron(kron(A, Matrix(1I, 2,2)), B)
+#     U2 = kron(A,B)
+#     @test contract(MPO(U1)) ≈ contract(extend_MPO(U2, (1,3)))
+#     @test contract(MPO(U1)) ≈ contract(extend_MPO(MPO(U2), (1,3)))
+# end
 
 @testset ExtendedTestSet "apply_mpo" begin
+    @testset "apply_mpo CNOT" begin
+        N = 5
 
-    #CNOT tests
-    Ucnot = [1 0 0 0; 0 1 0 0; 0 0 0 1; 0 0 1 0];
-    Ucnot13 = reshape(kron(Ucnot, Matrix(I, 2, 2)), (2, 2, 2, 2, 2, 2))
-    Ucnot13 = permutedims(Ucnot13, [2,1,3,5,4,6])
-    Ucnot13 = reshape(Ucnot13, (8, 8));
-    # create random MPS tensors, using bond dimensions (1, 3, 4, 1)
-    mps = [randn_complex((2, 3)), randn_complex((3, 2, 4)), randn_complex((4, 2))]
-    ψ_mps = ClosedMPS(Tensor.(mps));
-    ψ = reshape(contract(ψ_mps), 2^3);
-    ψ_mps_cnot = apply_MPO(ψ_mps, MPO(Ucnot), (1,3));
-    @test reshape(contract(ψ_mps_cnot), 8) ≈ Ucnot13*ψ
+        b1 = randn(ComplexF64, (2))
+        b2 = randn(ComplexF64, (2))
+        b3 = randn(ComplexF64, (2))
+        b4 = randn(ComplexF64, (2))
+        b5 = randn(ComplexF64, (2))
 
-    #Test for M-qubit gates acting on non-adjacent qubits out of N qubits
-    N, M = 7, 3
-    A = rand(ComplexF64, 2^M ,2^M);
-    U, R = qr(A)
-    U = Array(U);
-    GU = MatrixGate(U);
+        cntrl = rand(1:N)
+        targ = rand(1:N-1)
 
-    #arbitrary input
-    ψ_mps = random_mps(N)
-    ψ = reshape(contract(ψ_mps), 2^N);
+        if targ >= cntrl
+            targ += 1
+        end
 
-    #1st case: iwires are sorted
-    #apply MPO with input MPO and CircuitGate
-    combi = collect(combinations(1:N, M));
-    for (s,com) in enumerate(combi)
-        iwires_sorted = Tuple(com)
-        circuit_GU_sorted = CircuitGate(iwires_sorted,GU,N); #GATE
-        ψ_gate_sorted = apply(circuit_GU_sorted, ψ);
-        ψ_mpo_sorted = apply_MPO(ψ_mps, MPO(U), iwires_sorted);
-        @test reshape(contract(ψ_mpo_sorted), 2^N) ≈ ψ_gate_sorted
-        @test contract(ψ_mpo_sorted) ≈ contract(apply_MPO(ψ_mps, circuit_GU_sorted))
+        GU = controlled_circuit_gate(cntrl,targ,X,N)
+        ψ = kron(b1,b2,b3,b4,b5)
 
-        #2nd case: iwires are not sorted.
-        #apply_MPO with input AbstractMatrix and CircuitGate
-        w = [1:N...]
-        iwires = sample(w, M, replace = false)
-        circuit_GU = CircuitGate(Tuple(iwires),GU,N)
-        ψ_gate = apply(circuit_GU, ψ)
-        ψ_mpo = apply_MPO(ψ_mps, U, Tuple(iwires));
-        @test reshape(contract(ψ_mpo), 2^N) ≈ ψ_gate
-        @test contract(ψ_mpo) ≈ contract(apply_MPO(ψ_mps, circuit_GU))
+        Ucnot = [1 0 0 0; 0 1 0 0; 0 0 0 1; 0 0 1 0];
+        mpo_gate = MPO(Ucnot)
+        mps = MPS(ψ)
+
+        @test contract(apply_MPO(mps, mpo_gate, (cntrl,targ)))[:] ≈ apply(GU, ψ)
+    end
+
+    @testset "apply_mpo multi-qubit gate" begin
+        #Test for M-qubit gates acting on non-adjacent qubits out of N qubits
+        N, M = 7, 3
+        A = rand(ComplexF64, 2^M ,2^M);
+        U, R = qr(A)
+        U = Array(U);
+        GU = MatrixGate(U);
+
+        #arbitrary input
+        ψ_mps = random_mps(N)
+        ψ = reshape(contract(ψ_mps), 2^N);
+
+        #1st case: iwires are sorted
+        #apply MPO with input MPO and CircuitGate
+        combi = collect(combinations(1:N, M));
+        for (s,com) in enumerate(combi)
+            iwires_sorted = Tuple(com)
+            circuit_GU_sorted = CircuitGate(iwires_sorted,GU,N); #GATE
+            ψ_gate_sorted = apply(circuit_GU_sorted, ψ);
+            ψ_mpo_sorted = apply_MPO(ψ_mps, MPO(U), iwires_sorted);
+            @test reshape(contract(ψ_mpo_sorted), 2^N) ≈ ψ_gate_sorted
+            @test contract(ψ_mpo_sorted) ≈ contract(apply_MPO(ψ_mps, circuit_GU_sorted))
+
+            #2nd case: iwires are not sorted.
+            #apply_MPO with input AbstractMatrix and CircuitGate
+            w = [1:N...]
+            iwires = sample(w, M, replace = false)
+            circuit_GU = CircuitGate(Tuple(iwires),GU,N)
+            ψ_gate = apply(circuit_GU, ψ)
+            ψ_mpo = apply_MPO(ψ_mps, U, Tuple(iwires));
+            @test reshape(contract(ψ_mpo), 2^N) ≈ ψ_gate
+            @test contract(ψ_mpo) ≈ contract(apply_MPO(ψ_mps, circuit_GU))
+        end
     end
 end
 
