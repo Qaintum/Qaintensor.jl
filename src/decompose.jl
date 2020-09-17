@@ -29,7 +29,7 @@ function decompose!(cg::CircuitGate{M,N,G}) where {M,N,G}
     m = diagm(S) * adjoint(V)
 
     push!(t, Tensor(reshape(U, (2, 2, bond_dim))))
-    pushfirst!(w, cg.iwire[1])
+    push!(w, cg.iwire[1])
     push!(c, 0)
     push!(c, 3)
 
@@ -40,13 +40,13 @@ function decompose!(cg::CircuitGate{M,N,G}) where {M,N,G}
         new_bond_dim = size(S)[1]
 
         push!(t, Tensor(reshape(U, (bond_dim, 2, 2, new_bond_dim))))
-        pushfirst!(w, cg.iwire[i])
+        push!(w, cg.iwire[i])
         push!(c, 4)
         bond_dim = new_bond_dim
     end
 
     push!(t, Tensor(reshape(m, (bond_dim, 2, 2))))
-    pushfirst!(w, cg.iwire[M])
+    push!(w, cg.iwire[M])
 
     return (t,c,w)
 end
