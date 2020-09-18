@@ -67,21 +67,23 @@ mutable struct MPO <: TensorNetwork
             push!(t, Tensor(reshape(m, (bond_dim, 2, 2))))
 
             #output dimensions
-            for i in 1:M-1
-                push!(openidx, M-i+1 => 2)
-            end
             push!(openidx, 1 => 1)
+            for i in 2:M
+                push!(openidx, i => 2)
+            end
+            # push!(openidx, M => 1)
 
             #input dimensions
-            for i in 1:M-1
-                push!(openidx, M-i+1 => 3)
-            end
             push!(openidx, 1 => 2)
-            else
+            for i in 2:M
+                push!(openidx, i => 3)
+            end
+
+        else
             #one-qubit operator
             m = reshape(m, 2, 2)
             push!(t, Tensor(m))
-            openidx = [1 => 2, 1 => 1]
+            openidx = [1 => 1, 1 => 2]
         end
         new(t, con, openidx)
     end
@@ -119,10 +121,8 @@ Extend an operator `MPO` acting on `M` qudits into an operator acting on `N` qud
 function extend_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
 
     length(unique(iwire)) == length(iwire) || error("Repeated wires are not valid.")
-    collect(iwire) == sort(collect(iwire), rev=true) || error("Wires not sorted")
+    collect(iwire) == sort(collect(iwire)) || error("Wires not sorted")
     prod(0 .< iwire) || error("Wires must be positive integers.")
-
-    iwire = reverse(iwire)
 
     N = length(iwire[1]:iwire[end])
     @assert length(mpo.tensors) == M
@@ -166,7 +166,7 @@ Extend an operator represented by a matrix `m` acting on `M` qudits into an oper
 function extend_MPO(m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
     length(unique(iwire)) == length(iwire) || error("Repeated wires are not valid.")
     prod(0 .< iwire) || error("Wires must be positive integers.")
-    collect(iwire) == sort(collect(iwire), rev=true) || error("Wires not sorted")
+    collect(iwire) == sort(collect(iwire)) || error("Wires not sorted")
 return extend_MPO(MPO(m), iwire)
 end
 

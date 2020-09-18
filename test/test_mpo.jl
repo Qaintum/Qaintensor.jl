@@ -40,8 +40,8 @@ end
         B = rand(ComplexF64, 2 ,2)
         U1 = kron(kron(A, Matrix(1I, 2,2)), B)
         U2 = kron(A,B)
-        @test contract(MPO(U1)) ≈ contract(extend_MPO(U2, (3,1)))
-        @test contract(MPO(U1)) ≈ contract(extend_MPO(MPO(U2), (3,1)))
+        @test contract(MPO(U1)) ≈ contract(extend_MPO(U2, (1,3)))
+        @test contract(MPO(U1)) ≈ contract(extend_MPO(MPO(U2), (1,3)))
     end
 
     @testset  "extend_MPO CG check " begin
@@ -54,8 +54,8 @@ end
         U = kron(QA, QB)
         GU = two_qubit_circuit_gate(3, 1, MatrixGate(U), N)
 
-        @test reshape(Qaintessent.matrix(GU), (fill(2, 2N)...)) ≈ contract(extend_MPO(U, (3,1)))
-        @test reshape(Qaintessent.matrix(GU), (fill(2, 2N)...)) ≈ contract(extend_MPO(MPO(U), (3,1)))
+        @test reshape(Qaintessent.matrix(GU), (fill(2, 2N)...)) ≈ contract(extend_MPO(U, (1,3)))
+        @test reshape(Qaintessent.matrix(GU), (fill(2, 2N)...)) ≈ contract(extend_MPO(MPO(U), (1,3)))
     end
 
     @testset  "apply_mpo" begin

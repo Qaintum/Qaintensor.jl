@@ -22,12 +22,6 @@ function Qaintessent.apply(mpo::MPO, ψ::TensorNetwork, iwire::NTuple{M, <:Integ
     # TODO: support general "qudits"
     d = 2
 
-    if M < N
-        mpo = extend_MPO(mpo, Tuple(iwire))
-    end
-    
-    iwire = reverse(iwire)
-
     ψ_prime = GeneralTensorNetwork([copy(ψ.tensors); copy(mpo.tensors)],
                         [copy(ψ.contractions); shift_summation.(mpo.contractions, step)],
                         copy(ψ.openidx))
