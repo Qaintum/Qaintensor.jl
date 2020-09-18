@@ -12,8 +12,6 @@ function Qaintessent.apply(mpo::MPO, ψ::TensorNetwork, iwire::NTuple{M, <:Integ
 
     length(unique(iwire)) == length(iwire) || error("Repeated wires are not valid.")
 
-    # sort([iwire...]) == [iwire...] || error("Input 'iwires must be sorted'")
-
     n = length(ψ.openidx) #number of qudits
 
     prod(0 .< iwire .<= n) || error("Wires must be integers between 1 and n (total number of qudits).")
@@ -23,10 +21,12 @@ function Qaintessent.apply(mpo::MPO, ψ::TensorNetwork, iwire::NTuple{M, <:Integ
     N = length(iwire)
     # TODO: support general "qudits"
     d = 2
-    iwire = reverse(iwire)
+
     if M < N
         mpo = extend_MPO(mpo, Tuple(iwire))
     end
+    
+    iwire = reverse(iwire)
 
     ψ_prime = GeneralTensorNetwork([copy(ψ.tensors); copy(mpo.tensors)],
                         [copy(ψ.contractions); shift_summation.(mpo.contractions, step)],
@@ -55,10 +55,10 @@ of the dimensions.
 function Qaintessent.apply(m::AbstractMatrix, ψ::TensorNetwork, iwire::NTuple{M, <:Integer}) where M
     length(unique(iwire)) == length(iwire) || error("Repeated wires are not valid.")
     prod(0 .< iwire) || error("Wires must be positive integers.")
-
-    iwire_sorted = sort(collect(iwire))
-    if iwire_sorted != collect(iwire)
-        sort_wires = sortperm(collect(iwire))
+    iwire = collect(iwire)
+    iwire_sorted = sort(iwire)
+    if iwire_sorted != iwire
+        sort_wires = sortperm(iwire)
         perm = [sort_wires...; (sort_wires.+M)]
         m = reshape(m, fill(2, 2M)...)
         m = permutedims(m, perm)
@@ -75,5 +75,5 @@ Given a state `ψ`  in a Tensor Network form and CircuitGate `cg`, update the st
 function Qaintessent.apply(cg::CircuitGate, ψ::TensorNetwork)
     m = (cg.gate).matrix
     iwire = cg.iwire
-return Qaintessent.apply(m, ψ, iwire)
+    return Qaintessent.apply(m, ψ, iwire)
 end
