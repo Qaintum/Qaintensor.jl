@@ -82,7 +82,7 @@ end
             mpo_gate = MPO(Ucnot)
             mps = MPS(ψ)
 
-            @test contract(apply_MPO(mps, mpo_gate, (targ, cntrl)))[:] ≈ apply(GU, ψ)
+            @test contract(apply(mpo_gate, mps, (targ, cntrl)))[:] ≈ apply(GU, ψ)
         end
 
         @testset "apply_mpo multi-qubit gate" begin
@@ -104,19 +104,19 @@ end
                 iwires_sorted = Tuple(com)
                 circuit_GU_sorted = CircuitGate(iwires_sorted,GU,N); #GATE
                 ψ_gate_sorted = apply(circuit_GU_sorted, ψ);
-                ψ_mpo_sorted = apply_MPO(ψ_mps, MPO(U), iwires_sorted);
+                ψ_mpo_sorted = apply(MPO(U), ψ_mps, iwires_sorted);
                 @test reshape(contract(ψ_mpo_sorted), 2^N) ≈ ψ_gate_sorted
-                @test contract(ψ_mpo_sorted) ≈ contract(apply_MPO(ψ_mps, circuit_GU_sorted))
+                @test contract(ψ_mpo_sorted) ≈ contract(apply(circuit_GU_sorted, ψ_mps))
 
                 #2nd case: iwires are not sorted.
-                #apply_MPO with input AbstractMatrix and CircuitGate
+                #apply with input AbstractMatrix and CircuitGate
                 w = [1:N...]
                 iwires = sample(w, M, replace = false)
                 circuit_GU = CircuitGate(Tuple(iwires),GU,N)
                 ψ_gate = apply(circuit_GU, ψ)
-                ψ_mpo = apply_MPO(ψ_mps, U, Tuple(iwires));
+                ψ_mpo = apply(U, ψ_mps, Tuple(iwires));
                 @test reshape(contract(ψ_mpo), 2^N) ≈ ψ_gate
-                @test contract(ψ_mpo) ≈ contract(apply_MPO(ψ_mps, circuit_GU))
+                @test contract(ψ_mpo) ≈ contract(apply(circuit_GU, ψ_mps))
             end
         end
     end
@@ -133,9 +133,9 @@ end
         w_rep = (1, 3, 3)
         w_neg = (1, -2, 4)
         w_max = (1, 3, 6)
-        @test_throws ErrorException("Repeated wires are not valid.") apply_MPO(ψ_mps, MPO(U), w_rep)
-        @test_throws ErrorException("Wires must be integers between 1 and n (total number of qudits).") apply_MPO(ψ_mps, MPO(U), w_neg)
-        @test_throws ErrorException("Wires must be integers between 1 and n (total number of qudits).") apply_MPO(ψ_mps, MPO(U), w_max)
+        @test_throws ErrorException("Repeated wires are not valid.") apply(MPO(U), ψ_mps, w_rep)
+        @test_throws ErrorException("Wires must be integers between 1 and n (total number of qudits).") apply(MPO(U), ψ_mps, w_neg)
+        @test_throws ErrorException("Wires must be integers between 1 and n (total number of qudits).") apply(MPO(U), ψ_mps, w_max)
 
     end
 end

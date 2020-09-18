@@ -13,7 +13,7 @@ export
     GeneralTensorNetwork,
     TensorNetwork,
     Summation
-    
+
 include("helper.jl")
 
 include("contract.jl")
@@ -44,8 +44,9 @@ export
 include("mpo.jl")
 export
     MPO,
-    extend_MPO,
-    apply_MPO
+    extend_MPO
+
+include("apply.jl")
 
 include("switch.jl")
 export
