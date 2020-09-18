@@ -33,6 +33,7 @@ end
         GU = MatrixGate(U);
         mpo_gate = MPO(GU)
         @test mpo ≈ mpo_gate
+        @test contract(mpo)[:] ≈ Qaintessent.matrix(GU)[:]
     end
 
     @testset  "extend_MPO self-consistency" begin
@@ -40,22 +41,38 @@ end
         B = rand(ComplexF64, 2 ,2)
         U1 = kron(kron(A, Matrix(1I, 2,2)), B)
         U2 = kron(A,B)
+
         @test contract(MPO(U1)) ≈ contract(extend_MPO(U2, (1,3)))
         @test contract(MPO(U1)) ≈ contract(extend_MPO(MPO(U2), (1,3)))
     end
 
     @testset  "extend_MPO CG check " begin
-        N = 3
+        N = 4
         A = rand(ComplexF64, 2 ,2)
         QA, R = qr(A)
         B = rand(ComplexF64, 2 ,2)
         QB, R = qr(B)
 
         U = kron(QA, QB)
-        GU = two_qubit_circuit_gate(3, 1, MatrixGate(U), N)
+        GU = two_qubit_circuit_gate(1, 4, MatrixGate(U), N)
+        @test reshape(Qaintessent.matrix(GU), (fill(2, 2N)...)) ≈ contract(extend_MPO(U, (1,4)))
+        @test reshape(Qaintessent.matrix(GU), (fill(2, 2N)...)) ≈ contract(extend_MPO(MPO(U), (1,4)))
 
-        @test reshape(Qaintessent.matrix(GU), (fill(2, 2N)...)) ≈ contract(extend_MPO(U, (1,3)))
-        @test reshape(Qaintessent.matrix(GU), (fill(2, 2N)...)) ≈ contract(extend_MPO(MPO(U), (1,3)))
+        N = 5
+        GU = controlled_circuit_gate((1,3), (5), MatrixGate(U), N)
+        V = Array(Qaintessent.matrix(GU.gate))
+        @test reshape(Qaintessent.matrix(GU), (fill(2, 2N)...)) ≈ contract(extend_MPO(V, (1,3,5)))
+        @test reshape(Qaintessent.matrix(GU), (fill(2, 2N)...)) ≈ contract(extend_MPO(MPO(V), (1,3,5)))
+
+        GU = controlled_circuit_gate((5,3), 1, MatrixGate(U), N)
+
+        @test reshape(Qaintessent.matrix(GU), (fill(2, 2N)...)) ≈ contract(extend_MPO(V, (5,3,1)))
+        @test reshape(Qaintessent.matrix(GU), (fill(2, 2N)...)) ≈ contract(extend_MPO(MPO(V), (5,3,1)))
+
+        GU = controlled_circuit_gate((3,5), 1, MatrixGate(U), N)
+
+        @test reshape(Qaintessent.matrix(GU), (fill(2, 2N)...)) ≈ contract(extend_MPO(V, (3,5,1)))
+        @test reshape(Qaintessent.matrix(GU), (fill(2, 2N)...)) ≈ contract(extend_MPO(MPO(V), (3,5,1)))
     end
 
     @testset  "apply_mpo" begin
@@ -78,11 +95,11 @@ end
             GU = controlled_circuit_gate(targ, cntrl, X, N)
             ψ = kron(b1,b2,b3,b4,b5)
 
-            Ucnot = [1 0 0 0; 0 1 0 0; 0 0 0 1; 0 0 1 0];
+            Ucnot = [1 0 0 0; 0 1 0 0; 0 0 0 1; 0 0 1 0]
             mpo_gate = MPO(Ucnot)
             mps = MPS(ψ)
 
-            @test contract(apply(mpo_gate, mps, (targ, cntrl)))[:] ≈ apply(GU, ψ)
+            @test contract(apply(mpo_gate, deepcopy(mps), (targ, cntrl)))[:] ≈ apply(GU, ψ)
         end
 
         @testset "apply_mpo multi-qubit gate" begin
