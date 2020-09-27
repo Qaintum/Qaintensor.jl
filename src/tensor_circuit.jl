@@ -31,10 +31,10 @@ function tensor_circuit!(ψ::TensorNetwork, cg::CircuitGate{M,N,G}; is_decompose
             else
                 ψ.openidx[w] = length(ψ.tensors) => 2
             end
+
         end
         return
     end
-
     push!(ψ.tensors, Tensor(reshape(Qaintessent.matrix(cg.gate), fill(d, 2*M)...)))
     for (i, w) in enumerate(cg.iwire)
         # contractions with new tensor;

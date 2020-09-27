@@ -12,7 +12,10 @@ include("tensor_network.jl")
 export
     GeneralTensorNetwork,
     TensorNetwork,
-    Summation,
+    Summation
+
+include("contract.jl")
+export
     contract
 
 include("decompose.jl")
@@ -53,6 +56,13 @@ export
     binary_tree
 
 include("helper_binary_tree.jl")
+
+include("network2graph.jl")
+export
+    network_graph,
+    line_graph,
+    optimize_contraction_order!
+
 
 include("mpo_binary_tree.jl")
 export

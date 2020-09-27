@@ -6,6 +6,7 @@ using LinearAlgebra
 function decompose!(cg::CircuitGate{M,N,G}) where {M,N,G}
     M > 1 || error("Only decompose Circuit Gates that apply to multiple wires")
     m = Array(Qaintessent.matrix(cg.gate))
+
     d = 2
     bond_dim = 1
     t = Tensor[]
