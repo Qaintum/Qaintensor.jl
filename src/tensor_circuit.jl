@@ -39,9 +39,9 @@ function tensor_circuit!(ψ::TensorNetwork, cg::CircuitGate{M,N,G}; is_decompose
     for (i, w) in enumerate(cg.iwire)
         # contractions with new tensor;
         # last qubit corresponds to fastest varying index
-        push!(ψ.contractions, Summation([ψ.openidx[w], length(ψ.tensors) => 2*M - i + 1]))
+        push!(ψ.contractions, Summation([ψ.openidx[w], length(ψ.tensors) => i]))
         # new open leg
-        ψ.openidx[w] = length(ψ.tensors) => M - i + 1
+        ψ.openidx[w] = length(ψ.tensors) => M + i
     end
 end
 

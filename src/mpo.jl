@@ -94,6 +94,15 @@ mutable struct MPO <: TensorNetwork
     function MPO(cg::AbstractGate)
         MPO(Qaintessent.matrix(cg))
     end
+
+    """
+        MPO(cg::CircuitGate)
+
+    Transform an operator represented by a gate `cg` into an `MPO` form.
+    """
+    function MPO(cg::AbstractCircuitGate)
+        MPO(Qaintessent.matrix(cg))
+    end
 end
 
 """
@@ -110,8 +119,10 @@ Extend an operator `MPO` acting on `M` qudits into an operator acting on `N` qud
 function extend_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
 
     length(unique(iwire)) == length(iwire) || error("Repeated wires are not valid.")
-    collect(iwire) == sort(collect(iwire)) || @error("Wires not sorted")
+    collect(iwire) == sort(collect(iwire), rev=true) || error("Wires not sorted")
     prod(0 .< iwire) || error("Wires must be positive integers.")
+
+    iwire = reverse(iwire)
 
     N = length(iwire[1]:iwire[end])
     @assert length(mpo.tensors) == M
@@ -121,12 +132,12 @@ function extend_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
 
     # TODO: support general "qudits"
     d = 2
-    qwire = (iwire[1]:iwire[end]...,)
+    qwire = Tuple(iwire[1]:iwire[end])
     pipeswire = setdiff(qwire, iwire)
     pipeswire = sort(pipeswire)
     qwire = reverse(qwire)
 
-    for (i,w) in enumerate(reverse(pipeswire))
+    for (i,w) in enumerate(pipeswire)
         ind = findfirst(x->x==w, qwire)
         bond = size(mpo.tensors[ind-1])[end]
         Vpipe = reshape(kron(Matrix(1I, bond, bond), Matrix(1I, d, d)), (bond, d, bond, d))
@@ -155,7 +166,7 @@ Extend an operator represented by a matrix `m` acting on `M` qudits into an oper
 function extend_MPO(m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
     length(unique(iwire)) == length(iwire) || error("Repeated wires are not valid.")
     prod(0 .< iwire) || error("Wires must be positive integers.")
-    collect(iwire) == sort(collect(iwire)) || @error("Wires not sorted")
+    collect(iwire) == sort(collect(iwire), rev=true) || error("Wires not sorted")
 return extend_MPO(MPO(m), iwire)
 end
 
@@ -174,16 +185,18 @@ function apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) whe
 
     length(unique(iwire)) == length(iwire) || error("Repeated wires are not valid.")
 
+    # sort([iwire...]) == [iwire...] || error("Input 'iwires must be sorted'")
+
     n = length(ψ.openidx) #number of qudits
 
     prod(0 .< iwire .<= n) || error("Wires must be integers between 1 and n (total number of qudits).")
 
     step = length(ψ.tensors)
-    qwire = (iwire[1]:iwire[end]...,)
-    N = length(qwire)
+    # qwire = (iwire[1]:iwire[end]...,)
+    N = length(iwire)
     # TODO: support general "qudits"
     d = 2
-
+    iwire = reverse(iwire)
     if M < N
         mpo = extend_MPO(mpo, Tuple(iwire))
     end
@@ -192,11 +205,11 @@ function apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) whe
                         [copy(ψ.contractions); shift_summation.(mpo.contractions, step)],
                         copy(ψ.openidx))
     #add the contractions between mpo and state
-    for (i,w) in enumerate(qwire)
+    for (i,w) in enumerate(iwire)
         push!(ψ_prime.contractions, Summation([ψ.openidx[w], shift_pair(mpo.openidx[i+N], step)]))
     end
     #update the openidx
-    for (i,q) in enumerate(qwire)
+    for (i,q) in enumerate(iwire)
         ψ_prime.openidx[q] = shift_pair(mpo.openidx[i], step)
     end
     return ψ_prime
@@ -219,11 +232,7 @@ function apply_MPO(ψ::TensorNetwork, m::AbstractMatrix, iwire::NTuple{M, <:Inte
     iwire_sorted = sort(collect(iwire))
     if iwire_sorted != collect(iwire)
         sort_wires = sortperm(collect(iwire))
-        perm = reverse([1:M...])
-        perm = perm[sort_wires]
-        perm = reverse(perm)
-        perm = [perm; perm.+M]
-
+        perm = [sort_wires...; (sort_wires.+M)]
         m = reshape(m, fill(2, 2M)...)
         m = permutedims(m, perm)
         m = reshape(m, (2^M, 2^M))
