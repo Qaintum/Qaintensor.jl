@@ -26,7 +26,7 @@ function contract_svd(T1::Tensor, T2::Tensor, indx::NTuple{2,Int}; er = 0.0)
     U1, S1, V1 = svd(T1p)
     U2, S2, V2 = svd(T2p)
 
-    cumsum1, cumsum2 = cumsum(reverse(S1)), cumsum(reverse(S2))
+    cumsum1, cumsum2 = sqrt.(cumsum(reverse(S1.^2))), sqrt.(cumsum(reverse(S2.^2)))
     k1_reverse = findfirst(x-> x>er, cumsum1)
     k1 = length(cumsum1)-k1_reverse+1
     k2_reverse = findfirst(x-> x>er, cumsum2)

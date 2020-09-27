@@ -103,14 +103,21 @@ end
 
 @testset ExtendedTestSet "open_mps" begin
 
-    T = Tensor(rand(2,2,2))
-    mps = OpenMPS(T, 3)
-
+    mps = OpenMPS(Tensor(rand(2,2,2)), 3)
     gmps = GeneralTensorNetwork(mps.tensors, mps.contractions, mps.openidx)
     mps_contract = contract(gmps)
     mps_svd = contract_svd_mps(mps; er=0.0)
-
     @test mps_contract ≈ mps_svd
+
+    T1 = Tensor(rand(2,2,2))
+    T2 = Tensor(rand(2,2,2))
+    T3 = Tensor(rand(2,2,2))
+    mps = OpenMPS([T1,T2,T3])
+    gmps = GeneralTensorNetwork(mps.tensors, mps.contractions, mps.openidx)
+    mps_contract = contract(gmps)
+    mps_svd = contract_svd_mps(mps; er=0.0)
+    @test mps_contract ≈ mps_svd
+
 end
 
 @testset ExtendedTestSet "open_mps exceptions" begin
@@ -120,15 +127,20 @@ end
 end
 
 @testset ExtendedTestSet "closed_mps" begin
-    T1 = Tensor(rand(2,5))
-    T2 = Tensor(rand(5,2,3))
+
+    T1 = Tensor(rand(2,3))
+    T2 = Tensor(rand(3,2,3))
     T3 = Tensor(rand(3,2))
     mps = ClosedMPS([T1, T2, T3])
-
     gmps = GeneralTensorNetwork(mps.tensors, mps.contractions, mps.openidx)
     mps_contract = contract(gmps)
     mps_svd = contract_svd_mps(mps; er=0.0)
+    @test mps_contract ≈ mps_svd
 
+    mps = ClosedMPS(T1, T2, T3, 5)
+    gmps = GeneralTensorNetwork(mps.tensors, mps.contractions, mps.openidx)
+    mps_contract = contract(gmps)
+    mps_svd = contract_svd_mps(mps; er=0.0)
     @test mps_contract ≈ mps_svd
 end
 
@@ -279,7 +291,7 @@ end
     copy_mps = copy(mps)
 
     @test (copy_mps.tensors == mps.tensors) & (copy_mps.contractions == mps.contractions) & (copy_mps.openidx == mps.openidx)
-    
+
     mps.tensors[1] = Tensor(rand(2,5))
     @test mps.tensors != copy_mps.tensors
 end

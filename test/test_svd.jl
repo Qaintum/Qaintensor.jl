@@ -48,3 +48,35 @@ end
     @test_throws ErrorException("Dimensions of contraction legs do not match") contract(tn1) ≈ contract_svd(t1, t2_short, (1,3)).data
     @test contract(tn2) ≈ contract_svd(t1, t2, (3,4)).data
 end
+
+@testset ExtendedTestSet "contract_svd truncation error" begin
+
+    # Singular values decay exponentially
+    x = 0:99
+    s = exp.(-x)
+    A1, B1 = rand(100,100), rand(100,100)
+    A2, B2 = rand(100,100), rand(100,100)
+    U1,_ = qr(A1)
+    V1,_ = qr(B1)
+    U2,_ = qr(A2)
+    V2,_ = qr(B2)
+
+    T1 = U1*diagm(s)*V1
+    T2 = U2*diagm(s)*V2
+
+    er = 1e-10
+    mps = ClosedMPS([Tensor(T1),Tensor(T2)]);
+    ψ_approx = contract_svd_mps(mps, er = er)
+    ψ = contract(mps);
+
+    sum = sqrt.(cumsum(reverse(s.^2)))
+    k_reverse = findfirst(x-> x>er, sum)
+    k = length(sum)-k_reverse+1
+
+    n = norm(s)
+    n_truncation = norm(s[k+1:end])
+    bound_error = 2*n*n_truncation + n_truncation^2
+
+    @test norm(ψ_approx-ψ) < bound_error
+
+end
