@@ -4,8 +4,7 @@ using BenchmarkTools
     contraction_rep(net::TensorNetwork)
 Switch tensors to get S representation for contraction optimization
 """
-function contract_rep(net::TensorNetwork)
-
+function contract_rep(net::TensorNetwork, optimize::Bool)
     leg_costs = Dict{Int, Int}()
     indexlist = [fill(0, ndims(t)) for t in net.tensors]
     for (i, ts) in enumerate(net.contractions)
@@ -20,8 +19,8 @@ function contract_rep(net::TensorNetwork)
         # tensor leg must not participate in a contraction
         @assert indexlist[oi.first][oi.second] == 0
         # last qubit corresponds to fastest varying index
-        indexlist[oi.first][oi.second] = i - length(net.openidx) - 1 - j
-        leg_costs[abs(i - length(net.openidx) - 1 -j)] = size(net.tensors[oi.first])[oi.second]
+        indexlist[oi.first][oi.second] =  - i - j
+        leg_costs[abs(-i -j)] = size(net.tensors[oi.first])[oi.second]
     end
     # consistency check
     for idx in indexlist, i in idx
@@ -29,6 +28,33 @@ function contract_rep(net::TensorNetwork)
     end
 
     return leg_costs, indexlist
+end
+
+"""
+    contraction_rep(net::TensorNetwork)
+Switch tensors to get S representation for contraction optimization
+"""
+function contract_rep(net::TensorNetwork)
+    indexlist = [fill(0, ndims(t)) for t in net.tensors]
+    for (i, ts) in enumerate(net.contractions)
+        for j in ts.idx
+            @assert 1 ≤ j.second ≤ ndims(net.tensors[j.first])
+            indexlist[j.first][j.second] = i
+        end
+    end
+    j = length(net.contractions)
+    for (i, oi) in enumerate(net.openidx)
+        # tensor leg must not participate in a contraction
+        @assert indexlist[oi.first][oi.second] == 0
+        # last qubit corresponds to fastest varying index
+        indexlist[oi.first][oi.second] =  - i - j
+    end
+    # consistency check
+    for idx in indexlist, i in idx
+        @assert i != 0
+    end
+
+    return indexlist
 end
 
 """
@@ -208,11 +234,11 @@ Fully contract a given TensorNetwork object.
 """
 
 function contract(net::TensorNetwork; optimize=false)
-    legcosts, indexlist = contract_rep(net)
+
 
     # TODO: approximate contraction using SVD splittings
     if optimize
-
+        legcosts, indexlist = contract_rep(net; optimize=optimize)
         sequence, cost = contract_order(net, legcosts, indexlist)
         for i in 1:length(indexlist)
             for j in 1:length(indexlist[i])
@@ -222,6 +248,8 @@ function contract(net::TensorNetwork; optimize=false)
             end
         end
         return TensorOperations.ncon([t.data for t in net.tensors], indexlist; order=sequence)
+    else
+        indexlist = contract_rep(net)
     end
 
     # for now simply forward the contraction operation to 'ncon'

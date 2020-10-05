@@ -3,13 +3,12 @@ using TestSetExtensions
 using Qaintensor
 using Qaintessent
 
-#
 @testset ExtendedTestSet "tensor circuit" begin
 
     N = 3
 
     # initial MPS wavefunction
-    ψ = TensorNetwork([], [], [])
+    ψ = GeneralTensorNetwork([], [], [])
     push!(ψ.tensors, Tensor(randn(ComplexF64, (2, 6))))
     push!(ψ.tensors, Tensor(randn(ComplexF64, (2, 6, 7))))
     push!(ψ.tensors, Tensor(randn(ComplexF64, (2, 7))))
@@ -37,7 +36,7 @@ end
     # Test decomposition of 2-qubit gate
     N = 3
     # initial MPS wavefunction
-    ψ = TensorNetwork([], [], [])
+    ψ = GeneralTensorNetwork([], [], [])
     push!(ψ.tensors, Tensor(randn(ComplexF64, (2, 6))))
     push!(ψ.tensors, Tensor(randn(ComplexF64, (2, 6, 7))))
     push!(ψ.tensors, Tensor(randn(ComplexF64, (2, 7))))
@@ -68,7 +67,7 @@ end
     # Test decomposition of 3-qubit gate
     N = 4
     # initial MPS wavefunction
-    ψ = TensorNetwork([], [], [])
+    ψ = GeneralTensorNetwork([], [], [])
     push!(ψ.tensors, Tensor(randn(ComplexF64, (2, 6))))
     push!(ψ.tensors, Tensor(randn(ComplexF64, (2, 6, 7))))
     push!(ψ.tensors, Tensor(randn(ComplexF64, (2, 7, 5))))
@@ -85,11 +84,11 @@ end
     push!(ψ.openidx, 4=>1)
 
     cgc = CircuitGateChain{N}([
-    controlled_circuit_gate((3), (4,1), SwapGate(), N),
+    controlled_circuit_gate((4,1), (3), SwapGate(), N),
     single_qubit_circuit_gate(2, YGate(), N),
-    controlled_circuit_gate((1), (3), XGate(), N),
+    controlled_circuit_gate((3), (1), XGate(), N),
     single_qubit_circuit_gate(2, YGate(), N),
-    controlled_circuit_gate((1,2), 4, X, N),
+    controlled_circuit_gate(4, (1,2), X, N),
     single_qubit_circuit_gate(3, ZGate(), N),
     ])
     ψref = apply(cgc, contract(ψ)[:])
