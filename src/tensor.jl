@@ -1,5 +1,5 @@
 
-"""@docs
+"""
     Tensor(data::Array)
 
 Stores tensor data

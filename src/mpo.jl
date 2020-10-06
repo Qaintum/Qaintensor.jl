@@ -98,7 +98,7 @@ mutable struct MPO <: TensorNetwork
         MPO(Qaintessent.matrix(cg))
     end
 
-    """
+    """@docs
         MPO(cg::CircuitGate)
 
     Transform an operator represented by a gate `cg` into an `MPO` form.
@@ -174,14 +174,13 @@ return extend_MPO(MPO(m), iwire)
 end
 
 
-"""@docs
+"""
     apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) where M
 
 Given a state `ψ`  in a Tensor Network form and an operator `mpo` acting on `M` qudits, update the state by effectively applying `mpo`.
-...
+
 # Arguments
 - `iwire::NTuple{M, <:Integer}`: qudits in which `MPO` acts. When the input is `mpo::MPO`, `iwires` must be sorted.
-...
 """
 
 function apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) where M
