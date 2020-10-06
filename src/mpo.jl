@@ -18,6 +18,7 @@ mutable struct MPO <: TensorNetwork
         error("Direct conversion to MPS form is not support, please construct MPO from matrix or CircuitGate objects")
     end
 
+    @doc
     """
         MPO(m::AbstractMatrix)
 
@@ -86,6 +87,7 @@ mutable struct MPO <: TensorNetwork
         new(t, con, openidx)
     end
 
+    @doc
     """
         MPO(cg::AbstractGate)
 

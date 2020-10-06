@@ -1,4 +1,7 @@
 
+"""
+    Tensor(data::Array)
+"""
 struct Tensor
 
     data::Array

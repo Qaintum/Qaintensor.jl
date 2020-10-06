@@ -229,7 +229,8 @@ function contract_order(net::TensorNetwork, legcosts::Dict{Int,Int}, indexlist::
 end
 
 """
-    contract(net)
+    contract(net::TensorNetwork; optimize=false)
+    
 Fully contract a given TensorNetwork object.
 """
 
