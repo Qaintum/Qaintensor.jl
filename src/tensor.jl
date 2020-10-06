@@ -1,16 +1,12 @@
-
 """
     Tensor(data::Array)
 
 Stores tensor data
 """
 struct Tensor
-
     data::Array
-
     # TODO: add some meta-information like quantum numbers for tensor legs
 end
-
 
 Base.ndims(t::Tensor) = Base.ndims(t.data)
 

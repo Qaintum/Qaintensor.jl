@@ -118,7 +118,6 @@ Extend an operator `MPO` acting on `M` qudits into an operator acting on `N` qud
 ...
 
 """
-
 function extend_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
 
     length(unique(iwire)) == length(iwire) || error("Repeated wires are not valid.")
@@ -165,7 +164,6 @@ Extend an operator represented by a matrix `m` acting on `M` qudits into an oper
 - `iwire::NTuple{M, <:Integer}`: qudits in which `m` acts. It must be sorted.
 ...
 """
-
 function extend_MPO(m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
     length(unique(iwire)) == length(iwire) || error("Repeated wires are not valid.")
     prod(0 .< iwire) || error("Wires must be positive integers.")
@@ -182,7 +180,6 @@ Given a state `ψ`  in a Tensor Network form and an operator `mpo` acting on `M`
 # Arguments
 - `iwire::NTuple{M, <:Integer}`: qudits in which `MPO` acts. When the input is `mpo::MPO`, `iwires` must be sorted.
 """
-
 function apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) where M
 
     length(unique(iwire)) == length(iwire) || error("Repeated wires are not valid.")

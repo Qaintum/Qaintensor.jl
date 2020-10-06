@@ -17,8 +17,8 @@ Abstract struct representing TensorNetwork
 abstract type TensorNetwork end
 
 """
-    GeneralTensorNetwork(tensors::AbstractVector{Tensor}, contractions::AbstractVector{Summation}, openidx::AbstractVector{Pair{Integer,Integer}})
-    
+    GeneralTensorNetwork(tensors::AbstractVector{Tensor}, contractions::AbstractVector{Summation}, openidx::AbstractVector{Pair{Integer,Integer}})  <: TensorNetwork
+
 General Tensor network, consisting of tensors and contraction operations
 """
 mutable struct GeneralTensorNetwork <: TensorNetwork
