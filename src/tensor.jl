@@ -1,5 +1,6 @@
+
 """
-    Tensor(data::Array)
+    Tensor
 
 Stores tensor data
 """
