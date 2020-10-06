@@ -18,11 +18,12 @@ mutable struct MPO <: TensorNetwork
         error("Direct conversion to MPS form is not support, please construct MPO from matrix or CircuitGate objects")
     end
 
-    @doc
-    """
+
+    """@docs
         MPO(m::AbstractMatrix)
 
-    Transform an operator represented by matrix `m` into an `MPO` form."""
+    Transform an operator represented by matrix `m` into an `MPO` form.
+    """
     function MPO(m::AbstractMatrix)
 
         # TODO: support general "qudits"
@@ -87,8 +88,8 @@ mutable struct MPO <: TensorNetwork
         new(t, con, openidx)
     end
 
-    @doc
-    """
+
+    """@docs
         MPO(cg::AbstractGate)
 
     Transform an operator represented by a gate `cg` into an `MPO` form.
