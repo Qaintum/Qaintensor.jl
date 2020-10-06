@@ -156,7 +156,7 @@ function extend_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
     return mpo
 end
 
-"""
+"""@docs
     extend_MPO(m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
 
 Extend an operator represented by a matrix `m` acting on `M` qudits into an operator acting on `N` qudits by inserting identities.
@@ -174,7 +174,7 @@ return extend_MPO(MPO(m), iwire)
 end
 
 
-"""
+"""@docs
     apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) where M
 
 Given a state `ψ`  in a Tensor Network form and an operator `mpo` acting on `M` qudits, update the state by effectively applying `mpo`.
