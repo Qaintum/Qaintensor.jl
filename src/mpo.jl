@@ -19,7 +19,7 @@ mutable struct MPO <: TensorNetwork
     end
 
 
-    """@docs
+    """
         MPO(m::AbstractMatrix)
 
     Transform an operator represented by matrix `m` into an `MPO` form.
