@@ -155,7 +155,7 @@ function extend_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
     return mpo
 end
 
-"""@docs
+"""
     extend_MPO(m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
 
 Extend an operator represented by a matrix `m` acting on `M` qudits into an operator acting on `N` qudits by inserting identities.
