@@ -18,10 +18,12 @@ mutable struct MPO <: TensorNetwork
         error("Direct conversion to MPS form is not support, please construct MPO from matrix or CircuitGate objects")
     end
 
-    """
+
+    @doc """
         MPO(m::AbstractMatrix)
 
-    Transform an operator represented by matrix `m` into an `MPO` form."""
+    Transform an operator represented by matrix `m` into an `MPO` form.
+    """
     function MPO(m::AbstractMatrix)
 
         # TODO: support general "qudits"
@@ -86,7 +88,8 @@ mutable struct MPO <: TensorNetwork
         new(t, con, openidx)
     end
 
-    """
+
+    @doc """
         MPO(cg::AbstractGate)
 
     Transform an operator represented by a gate `cg` into an `MPO` form.
@@ -95,7 +98,7 @@ mutable struct MPO <: TensorNetwork
         MPO(Qaintessent.matrix(cg))
     end
 
-    """
+    @doc """
         MPO(cg::CircuitGate)
 
     Transform an operator represented by a gate `cg` into an `MPO` form.
@@ -115,7 +118,6 @@ Extend an operator `MPO` acting on `M` qudits into an operator acting on `N` qud
 ...
 
 """
-
 function extend_MPO(mpo::MPO, iwire::NTuple{M, <:Integer}) where M
 
     length(unique(iwire)) == length(iwire) || error("Repeated wires are not valid.")
@@ -162,7 +164,6 @@ Extend an operator represented by a matrix `m` acting on `M` qudits into an oper
 - `iwire::NTuple{M, <:Integer}`: qudits in which `m` acts. It must be sorted.
 ...
 """
-
 function extend_MPO(m::AbstractMatrix, iwire::NTuple{M, <:Integer}) where M
     length(unique(iwire)) == length(iwire) || error("Repeated wires are not valid.")
     prod(0 .< iwire) || error("Wires must be positive integers.")
@@ -172,15 +173,13 @@ end
 
 
 """
-    apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) where M
+    apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) where {M}
 
 Given a state `ψ`  in a Tensor Network form and an operator `mpo` acting on `M` qudits, update the state by effectively applying `mpo`.
-...
+
 # Arguments
 - `iwire::NTuple{M, <:Integer}`: qudits in which `MPO` acts. When the input is `mpo::MPO`, `iwires` must be sorted.
-...
 """
-
 function apply_MPO(ψ::TensorNetwork, mpo::MPO, iwire::NTuple{M, <:Integer}) where M
 
     length(unique(iwire)) == length(iwire) || error("Repeated wires are not valid.")

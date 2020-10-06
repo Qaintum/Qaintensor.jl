@@ -17,6 +17,8 @@ Abstract struct representing TensorNetwork
 abstract type TensorNetwork end
 
 """
+    GeneralTensorNetwork  <: TensorNetwork
+
 General Tensor network, consisting of tensors and contraction operations
 """
 mutable struct GeneralTensorNetwork <: TensorNetwork
