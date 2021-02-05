@@ -40,12 +40,13 @@ mutable struct MPO <: TensorNetwork
         if M > 1
             m = reshape(m, fill(2, 2M)...)
             bond_dim = 1
-            dims = Integer[]
+            dims = Int[]
 
             for i in 1:M
                 push!(dims, i)
                 push!(dims, i + M)
             end
+            
             m = permutedims(m, dims)
             m = reshape(m, (4*bond_dim, :))
 
