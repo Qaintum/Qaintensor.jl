@@ -5,11 +5,11 @@
 Update the tensor network description of a quantum state by a circuit gate,
 effectively applying the gate.
 """
-function tensor_circuit!(ψ::TensorNetwork, cg::CircuitGate{M,N,G}; is_decompose=false) where {M,N,G}
+function tensor_circuit!(ψ::TensorNetwork, cg::CircuitGate{M,G}; is_decompose=false) where {M,G}
     # TODO: specialization for various G
 
     # number of wires must agree
-    @assert N == length(ψ.openidx)
+    @assert Qaintessent.req_wires(cg) <= length(ψ.openidx)
 
     # TODO: support general "qudits"
     d = 2
@@ -52,7 +52,13 @@ end
 Incorporate a circuit gate chain into a quantum tensor network state,
 effectively applying the circuit to the state.
 """
-function tensor_circuit!(ψ::TensorNetwork, cgc::CircuitGateChain{N}; is_decompose=false) where {N}
+function tensor_circuit!(ψ::TensorNetwork, cgc::Vector{<:CircuitGate}; is_decompose=false)
+    for gate in cgc
+            tensor_circuit!(ψ, gate, is_decompose=is_decompose)
+    end
+end
+
+function tensor_circuit!(ψ::TensorNetwork, cgc::Vector{Moment}; is_decompose=false)
     for moment in cgc
         for gate in moment
             tensor_circuit!(ψ, gate, is_decompose=is_decompose)
