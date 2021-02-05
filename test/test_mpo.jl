@@ -52,10 +52,10 @@ end
         QB, R = qr(B)
 
         U = kron(QA, QB)
-        GU = two_qubit_circuit_gate(3, 1, MatrixGate(U), N)
+        GU = circuit_gate((3, 1), MatrixGate(U))
 
-        @test reshape(Qaintessent.matrix(GU), (fill(2, 2N)...)) ≈ contract(extend_MPO(U, (3,1)))
-        @test reshape(Qaintessent.matrix(GU), (fill(2, 2N)...)) ≈ contract(extend_MPO(MPO(U), (3,1)))
+        @test reshape(Qaintessent.sparse_matrix(GU), (fill(2, 2N)...)) ≈ contract(extend_MPO(U, (3,1)))
+        @test reshape(Qaintessent.sparse_matrix(GU), (fill(2, 2N)...)) ≈ contract(extend_MPO(MPO(U), (3,1)))
     end
 
     @testset  "apply_mpo" begin
@@ -75,7 +75,7 @@ end
                 targ += 1
             end
 
-            GU = controlled_circuit_gate(targ, cntrl, X, N)
+            GU = circuit_gate(targ, X, cntrl)
             ψ = kron(b1,b2,b3,b4,b5)
 
             Ucnot = [1 0 0 0; 0 1 0 0; 0 0 0 1; 0 0 1 0];
@@ -102,7 +102,7 @@ end
             combi = collect(combinations(1:N, M));
             for (s,com) in enumerate(combi)
                 iwires_sorted = Tuple(com)
-                circuit_GU_sorted = CircuitGate(iwires_sorted,GU,N); #GATE
+                circuit_GU_sorted = CircuitGate(iwires_sorted,GU); #GATE
                 ψ_gate_sorted = apply(circuit_GU_sorted, ψ);
                 ψ_mpo_sorted = apply_MPO(ψ_mps, MPO(U), iwires_sorted);
                 @test reshape(contract(ψ_mpo_sorted), 2^N) ≈ ψ_gate_sorted
@@ -112,7 +112,7 @@ end
                 #apply_MPO with input AbstractMatrix and CircuitGate
                 w = [1:N...]
                 iwires = sample(w, M, replace = false)
-                circuit_GU = CircuitGate(Tuple(iwires),GU,N)
+                circuit_GU = CircuitGate(Tuple(iwires),GU)
                 ψ_gate = apply(circuit_GU, ψ)
                 ψ_mpo = apply_MPO(ψ_mps, U, Tuple(iwires));
                 @test reshape(contract(ψ_mpo), 2^N) ≈ ψ_gate

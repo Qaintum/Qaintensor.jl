@@ -158,17 +158,18 @@ Interaction graph of a CircuitGateChain.
 - `G::Graph`: a graph with `N` nodes. Nodes `i` and `j` are connected iff
 there is a gate in `cgc` acting on both.
 """
-function interaction_graph(cgc::CircuitGateChain{N}) where N
+function interaction_graph(cgc::Vector{<:CircuitGate})
+    N = maximum(Qaintessent.req_wires.(cgc))
     G = Graph(N)
-    for moment in cgc
-        for cg in moment
-            for (j, i1) in enumerate(cg.iwire)
-                for i2 in cg.iwire[1:j-1]
-                    LightGraphs.add_edge!(G, i1, i2)
-                end
+
+    for cg in cgc
+        for (j, i1) in enumerate(cg.iwire)
+            for i2 in cg.iwire[1:j-1]
+                LightGraphs.add_edge!(G, i1, i2)
             end
         end
     end
+    
     return G
 end
 

@@ -3,7 +3,7 @@ using LinearAlgebra
  decompose: decomposes multiple qubit gates into smaller tensors
 """
 
-function decompose!(cg::CircuitGate{M,N,G}) where {M,N,G}
+function decompose!(cg::CircuitGate{M,G}) where {M,G}
     M > 1 || error("Only decompose Circuit Gates that apply to multiple wires")
     m = Array(Qaintessent.matrix(cg.gate))
 

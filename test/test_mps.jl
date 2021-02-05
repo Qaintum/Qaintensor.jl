@@ -1,6 +1,7 @@
 using Test
 using TestSetExtensions
 using Qaintensor
+using Qaintmodels
 using LinearAlgebra
 using Random
 

@@ -2,6 +2,7 @@ using Test
 using TestSetExtensions
 using Qaintensor
 using Qaintessent
+using Qaintmodels
 
 @testset ExtendedTestSet "tensor circuit" begin
 
@@ -49,13 +50,13 @@ end
     push!(ψ.openidx, 2=>1)
     push!(ψ.openidx, 3=>1)
 
-    cg = [
-        controlled_circuit_gate((3), (1), X, N),
-        controlled_circuit_gate((3), (1), Y, N),
-        controlled_circuit_gate((1), (2), Y, N),
-        controlled_circuit_gate((2), (1), Z, N)
+    cgc = [
+        circuit_gate((3), X, (1)),
+        circuit_gate((3), Y, (1)),
+        circuit_gate((1), Y, (2)),
+        circuit_gate((2), Z, (1))
             ]
-    cgc = CircuitGateChain{N}(cg)
+
     ψref = apply(cgc, contract(ψ)[:])
 
     tensor_circuit!(ψ, cgc; is_decompose=true)
@@ -83,14 +84,14 @@ end
     push!(ψ.openidx, 3=>1)
     push!(ψ.openidx, 4=>1)
 
-    cgc = CircuitGateChain{N}([
-    controlled_circuit_gate((4,1), (3), SwapGate(), N),
-    single_qubit_circuit_gate(2, YGate(), N),
-    controlled_circuit_gate((3), (1), XGate(), N),
-    single_qubit_circuit_gate(2, YGate(), N),
-    controlled_circuit_gate(4, (1,2), X, N),
-    single_qubit_circuit_gate(3, ZGate(), N),
-    ])
+    cgc = [
+    circuit_gate((4,1), SwapGate(), (3)),
+    circuit_gate(2, YGate()),
+    circuit_gate((3), XGate(), (1)),
+    circuit_gate(2, YGate()),
+    circuit_gate(4, X, (1,2)),
+    circuit_gate(3, ZGate()),
+    ]
     ψref = apply(cgc, contract(ψ)[:])
 
     tensor_circuit!(ψ, cgc; is_decompose=true)
