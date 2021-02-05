@@ -7,6 +7,7 @@ using Qaintensor: random_graph, local_circuit_graph,
         interaction_graph, lacking_for_clique_neigh, rem_vertex_fill!,
         min_fill_ordering, triangulation, contraction_order, contract
 using Qaintessent
+using Qaintmodels
 
 # for extensive check of the random tests increase the following parameter
 samples_per_test = 1
@@ -348,8 +349,8 @@ end
         #
         # generate expectation value tensor network
         """ Compute the expectation value of a random MPS when run through circuit `cgc`"""
-        function expectation_value(cgc::CircuitGateChain{N}; is_decompose = false) where N
-
+        function expectation_value(cgc::Vector{CircuitGate}; is_decompose = false)
+            N = maximum(Qaintessent.req_wires.(cgc))
             tensors = Tensor.([crand(2,2), [crand(2,2,2) for i in 2:N-1]..., crand(2,2)])
             T0 = ClosedMPS(tensors)
 
