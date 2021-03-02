@@ -362,14 +362,6 @@ repo-url = "https://github.com/Qaintum/Qaintessent.jl"
 uuid = "9e6618a4-6605-11ea-2880-e931cf774ea8"
 version = "0.1.0"
 
-[[Qaintgraphs]]
-deps = ["Colors", "Compose", "GraphPlot", "LightGraphs", "LinearAlgebra", "Memoize", "Qaintessent", "Random", "SparseArrays", "Test", "TestSetExtensions"]
-git-tree-sha1 = "293d349d98c4a32e760e43fcc3f401379a5a90b9"
-repo-rev = "zxdiagrams"
-repo-url = "https://github.com/Qaintum/Qaintgraphs.jl"
-uuid = "d49129ab-7143-40c9-9112-93ea0c4588df"
-version = "0.1.0"
-
 [[Qaintmodels]]
 deps = ["LinearAlgebra", "MacroTools", "Qaintessent", "SparseArrays", "StaticArrays", "Test", "TestSetExtensions"]
 git-tree-sha1 = "795abc71262f1dabf41b8c0fcebb19dbb58804dd"
