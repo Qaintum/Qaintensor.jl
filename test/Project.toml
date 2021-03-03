@@ -1,0 +1,12 @@
+[deps]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+TestSetExtensions = "98d24dd4-01ad-11ea-1b02-c9a08f80db04"
+Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
+LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+Qaintessent = "9e6618a4-6605-11ea-2880-e931cf774ea8"
+Qaintmodels = "ab7059c2-a49a-4c6e-9904-a72a0109a3ff"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+TensorOperations = "6aa20fa7-93e2-5fca-9bc0-fbd0db3c71a2"
