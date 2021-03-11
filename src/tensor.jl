@@ -2,7 +2,7 @@
 """
     Tensor
 
-Stores tensor data
+stores vector of tensors
 """
 struct Tensor
     data::Array
@@ -11,7 +11,7 @@ end
 
 Base.ndims(t::Tensor) = Base.ndims(t.data)
 
-Base.reshape(t::Tensor,dim::Tuple) = Tensor(Base.reshape(t.data,dim))
+Base.reshape(t::Tensor,dim::Tuple) = Tensor(reshape(t.data,dim))
 Base.reshape(t::Tensor,dim::Int...) = reshape(t, dim)
 Base.size(t::Tensor) = Base.size(t.data)
 

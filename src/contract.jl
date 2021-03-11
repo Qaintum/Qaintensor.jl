@@ -2,6 +2,7 @@ using BenchmarkTools
 
 """
     contraction_rep(net::TensorNetwork)
+    
 Switch tensors to get S representation for contraction optimization
 """
 function contract_rep(net::TensorNetwork, optimize::Bool)
@@ -32,6 +33,7 @@ end
 
 """
     contraction_rep(net::TensorNetwork)
+
 Switch tensors to get S representation for contraction optimization
 """
 function contract_rep(net::TensorNetwork)
@@ -58,7 +60,8 @@ function contract_rep(net::TensorNetwork)
 end
 
 """
-    getBuildCost(freelegs, commonlegs, legCosts, μ_old, μ, newObjectFlags[a][i]||newObjectFlags[b][j], Ta.costToBuild, Tb.costToBuild)
+    getBuildCost(freelegs, commonlegs, legCosts, μ_old, μ, isnew, cost1, cost2)
+
 calcualtes cost of building tensor given 2 input tensors
 implements algorithm for opt_einsum in arxiv:1304.6112
 """
@@ -84,7 +87,8 @@ end
 
 
 """
-    check_contraction!(Sab, Sa, Sb, leg_costs)
+    check_contraction!(S, a, b, legcosts, listindex, newObjectFlags, μs)
+
 checks all combinations of tensors in Sa and Sb. Updates Sab for allowable combinations
 implements algorithm for opt_einsum in arxiv:1304.6112
 """
@@ -157,6 +161,7 @@ end
 
 """
     ContractionCombination
+
 Datastructure to represent a possible contraction combination
 """
 struct ContractionObject
@@ -171,6 +176,7 @@ end
 
 """
     contract_order(net::TensorNetwork)
+
 simple port of contract_path algorithms from github.com/dgasmith/opt_einsum to julia
 implements algorithm for opt_einsum in arxiv:1304.6112
 """
@@ -218,7 +224,7 @@ function contract_order(net::TensorNetwork, legcosts::Dict{Int,Int}, indexlist::
         μ_cap = μ_next
         μ_next = Inf
 
-        for i in length(newObjectFlags)
+        for i in 1:length(newObjectFlags)
             newObjectFlags[i][:] .= false
         end
 
@@ -238,7 +244,7 @@ function contract(net::TensorNetwork; optimize=false)
 
     # TODO: approximate contraction using SVD splittings
     if optimize
-        legcosts, indexlist = contract_rep(net; optimize=optimize)
+        legcosts, indexlist = contract_rep(net, optimize)
         sequence, cost = contract_order(net, legcosts, indexlist)
         for i in 1:length(indexlist)
             for j in 1:length(indexlist[i])

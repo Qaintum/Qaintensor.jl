@@ -1,10 +1,12 @@
 
 """
+    Summation
+
 Abstract representation of a single summation within a contraction operation
 """
 struct Summation
     # first index refers to tensor, and second index to tensor leg
-    idx::AbstractVector{Pair{Integer,Integer}}
+    idx::Vector{Pair{Integer,Integer}}
 end
 
 function Base.:(==)(S1::Summation, S2::Summation)
