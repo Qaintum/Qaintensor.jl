@@ -79,7 +79,7 @@ using Random
         cgc = qft_circuit(N)
 
         # conventional statevector representation, as reference
-        ψref = apply(cgc, contract(ψ)[:])
+        ψref = apply(contract(ψ)[:], cgc)
 
         # using tensor network representation
         tensor_circuit!(ψ, cgc)
