@@ -240,8 +240,9 @@ end
 Fully contract a given TensorNetwork object.
 """
 function contract(net::TensorNetwork; optimize=false)
-
-
+    if length(net.tensors) == 1
+        return permutedims(net.tensors[1].data, getproperty.(net.openidx, :second))
+    end
     # TODO: approximate contraction using SVD splittings
     if optimize
         legcosts, indexlist = contract_rep(net, optimize)
