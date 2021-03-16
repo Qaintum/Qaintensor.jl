@@ -9,6 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1.0.0
       - uses: julia-actions/setup-julia@latest
+      - run: cd~/.julia/registries/General; git remote prune origin; rm .git/refs/remotes/origin/master; git pull;
       - run: julia -e 'using Pkg; Pkg.instantiate(); Pkg.add(url="https://github.com/Qaintum/Qaintmodels.jl")'
       - uses: julia-actions/julia-runtest@master
       - uses: julia-actions/julia-processcoverage@v1
