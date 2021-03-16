@@ -86,78 +86,78 @@ function getBuildCost(freelegs, commonlegs, legCosts, μ_old, μ, isnew, cost1, 
 end
 
 
-#"""
-#    check_contraction!(S, a, b, legcosts, listindex, newObjectFlags, μs)
-#
-#checks all combinations of tensors in Sa and Sb. Updates Sab for allowable combinations
-#implements algorithm for opt_einsum in arxiv:1304.6112
-#"""
-#
-#function check_contraction!(S, a, b, legcosts, listindex, newObjectFlags, μs)
-#
-#    μ_old = μs[1]
-#    μ_cap = μs[2]
-#    μ_next = μs[3]
-#    Sa = S[a]
-#    Sb = S[b]
-#    Sab = S[a+b]
-#
-#    for (i, Ta) in enumerate(Sa)
-#        for (j, Tb) in enumerate(Sb)
-#            if any(Ta.tensorFlags .& Tb. tensorFlags)
-#                continue
-#            end
-#
-#            commonlegs = Ta.legFlags .& Tb.legFlags
-#            freelegs = Ta.legFlags .⊻ Tb.legFlags
-#            freelegs1 = Ta.legFlags .& freelegs
-#            freelegs2 = Tb.legFlags .& freelegs
-#            commonlegsflag = any(commonlegs)
-#
-#            if !commonlegsflag
-#                continue
-#            end
-#
-#            newCost, isOK = getBuildCost(freelegs, commonlegs, legcosts, μ_old, μ_cap, (newObjectFlags[a][i]||newObjectFlags[b][j]), Ta.costToBuild, Tb.costToBuild)
-#            if !isOK
-#                μ_next = min(μ_next, newCost)
-#                continue
-#            end
-#
-#            tensorsInNew = Ta.tensorFlags .| Tb.tensorFlags
-#            legsInNew = Ta.legFlags .| Tb.legFlags
-#            isnew = true
-#            objptr = 0
-#            for (i, object) in enumerate(Sab)
-#                isnew = object.tensorFlags != tensorsInNew
-#                if !isnew
-#                    objptr = i
-#                    break
-#                end
-#            end
-#
-#            newsequence = Int[]
-#            for i = 1:length(commonlegs)
-#                if commonlegs[i] != 0
-#                    push!(newsequence, i)
-#                end
-#            end
-#            sequence = vcat(Ta.sequenceToBuild, Tb.sequenceToBuild, newsequence)
-#            newmaxdim = []
-#            if isnew
-#                push!(Sab, ContractionObject(freelegs, tensorsInNew, sequence, newCost, false, 0, 0))
-#                push!(newObjectFlags[a+b], true)
-#            else
-#                if Sab[objptr].costToBuild > newCost
-#                    Sab[objptr] = ContractionObject(freelegs, tensorsInNew, sequence, newCost, false, 0, 0)
-#                    newObjectFlags[a+b][objptr] = true
-#                end
-#            end
-#        end
-#    end
-#
-#    return μ_old, μ_cap, μ_next
-#end
+"""
+    check_contraction!(S, a, b, legcosts, listindex, newObjectFlags, μs)
+
+checks all combinations of tensors in Sa and Sb. Updates Sab for allowable combinations
+implements algorithm for opt_einsum in arxiv:1304.6112
+"""
+
+function check_contraction!(S, a, b, legcosts, listindex, newObjectFlags, μs)
+
+    μ_old = μs[1]
+    μ_cap = μs[2]
+    μ_next = μs[3]
+    Sa = S[a]
+    Sb = S[b]
+    Sab = S[a+b]
+
+    for (i, Ta) in enumerate(Sa)
+        for (j, Tb) in enumerate(Sb)
+            if any(Ta.tensorFlags .& Tb. tensorFlags)
+                continue
+            end
+
+            commonlegs = Ta.legFlags .& Tb.legFlags
+            freelegs = Ta.legFlags .⊻ Tb.legFlags
+            freelegs1 = Ta.legFlags .& freelegs
+            freelegs2 = Tb.legFlags .& freelegs
+            commonlegsflag = any(commonlegs)
+
+            if !commonlegsflag
+                continue
+            end
+
+            newCost, isOK = getBuildCost(freelegs, commonlegs, legcosts, μ_old, μ_cap, (newObjectFlags[a][i]||newObjectFlags[b][j]), Ta.costToBuild, Tb.costToBuild)
+            if !isOK
+                μ_next = min(μ_next, newCost)
+                continue
+            end
+
+            tensorsInNew = Ta.tensorFlags .| Tb.tensorFlags
+            legsInNew = Ta.legFlags .| Tb.legFlags
+            isnew = true
+            objptr = 0
+            for (i, object) in enumerate(Sab)
+                isnew = object.tensorFlags != tensorsInNew
+                if !isnew
+                    objptr = i
+                    break
+                end
+            end
+
+            newsequence = Int[]
+            for i = 1:length(commonlegs)
+                if commonlegs[i] != 0
+                    push!(newsequence, i)
+                end
+            end
+            sequence = vcat(Ta.sequenceToBuild, Tb.sequenceToBuild, newsequence)
+            newmaxdim = []
+            if isnew
+                push!(Sab, ContractionObject(freelegs, tensorsInNew, sequence, newCost, false, 0, 0))
+                push!(newObjectFlags[a+b], true)
+            else
+                if Sab[objptr].costToBuild > newCost
+                    Sab[objptr] = ContractionObject(freelegs, tensorsInNew, sequence, newCost, false, 0, 0)
+                    newObjectFlags[a+b][objptr] = true
+                end
+            end
+        end
+    end
+
+    return μ_old, μ_cap, μ_next
+end
 
 """
     ContractionCombination
@@ -174,72 +174,72 @@ struct ContractionObject
     allInOP::Int
 end
 
-#"""
-#    contract_order(net::TensorNetwork)
-#
-#simple port of contract_path algorithms from github.com/dgasmith/opt_einsum to julia
-#implements algorithm for opt_einsum in arxiv:1304.6112
-#"""
-#
-#function contract_order(net::TensorNetwork, legcosts::Dict{Int,Int}, indexlist::Array)
-#    n = length(net.tensors)
-#    S = AbstractVector{ContractionObject}[]
-#    newObjectFlags = AbstractVector{Bool}[]
-#    S1 = ContractionObject[]
-#    numtensors = length(net.tensors)
-#    numlegs = length(keys(legcosts))
-#    for (i,x) in enumerate(indexlist)
-#        legFlags = fill(false, numlegs)
-#        legFlags[abs.(x)] .= true
-#        tensorFlags = fill(false, numtensors)
-#        tensorFlags[i] = true
-#        sequenceToBuild = []
-#        costToBuild = 0
-#        isOP = false
-#        OPMaxDim = 0
-#        allInOP = 0
-#
-#        push!(S1, ContractionObject(legFlags, tensorFlags, sequenceToBuild, costToBuild, isOP, OPMaxDim, allInOP))
-#    end
-#
-#    push!(S, S1)
-#    push!(newObjectFlags, fill(true, numtensors))
-#
-#    for i in 2:n
-#        push!(S, ContractionObject[])
-#        push!(newObjectFlags, Bool[])
-#    end
-#
-#    μ_old = 0
-#    μ_cap = 1
-#    μ_next = Inf
-#
-#    while length(S[end]) == 0
-#        for c in 2:n
-#            for d in 1:floor(Int, c//2)
-#                μ_old, μ_cap, μ_next = check_contraction!(S, d, c-d, legcosts, indexlist, newObjectFlags, (μ_old, μ_cap, μ_next))
-#            end
-#        end
-#        μ_old = μ_cap
-#        μ_cap = μ_next
-#        μ_next = Inf
-#
-#        for i in 1:length(newObjectFlags)
-#            newObjectFlags[i][:] .= false
-#        end
-#
-#    end
-#    sequence = S[end][1].sequenceToBuild
-#    cost = S[end][1].costToBuild
-#    return sequence, cost
-#end
+"""
+    contract_order(net::TensorNetwork)
+
+simple port of contract_path algorithms from github.com/dgasmith/opt_einsum to julia
+implements algorithm for opt_einsum in arxiv:1304.6112
+"""
+
+function contract_order(net::TensorNetwork, legcosts::Dict{Int,Int}, indexlist::Array)
+    n = length(net.tensors)
+    S = AbstractVector{ContractionObject}[]
+    newObjectFlags = AbstractVector{Bool}[]
+    S1 = ContractionObject[]
+    numtensors = length(net.tensors)
+    numlegs = length(keys(legcosts))
+    for (i,x) in enumerate(indexlist)
+        legFlags = fill(false, numlegs)
+        legFlags[abs.(x)] .= true
+        tensorFlags = fill(false, numtensors)
+        tensorFlags[i] = true
+        sequenceToBuild = []
+        costToBuild = 0
+        isOP = false
+        OPMaxDim = 0
+        allInOP = 0
+
+        push!(S1, ContractionObject(legFlags, tensorFlags, sequenceToBuild, costToBuild, isOP, OPMaxDim, allInOP))
+    end
+
+    push!(S, S1)
+    push!(newObjectFlags, fill(true, numtensors))
+
+    for i in 2:n
+        push!(S, ContractionObject[])
+        push!(newObjectFlags, Bool[])
+    end
+
+    μ_old = 0
+    μ_cap = 1
+    μ_next = Inf
+
+    while length(S[end]) == 0
+        for c in 2:n
+            for d in 1:floor(Int, c//2)
+                μ_old, μ_cap, μ_next = check_contraction!(S, d, c-d, legcosts, indexlist, newObjectFlags, (μ_old, μ_cap, μ_next))
+            end
+        end
+        μ_old = μ_cap
+        μ_cap = μ_next
+        μ_next = Inf
+
+        for i in 1:length(newObjectFlags)
+            newObjectFlags[i][:] .= false
+        end
+
+    end
+    sequence = S[end][1].sequenceToBuild
+    cost = S[end][1].costToBuild
+    return sequence, cost
+end
 
 """
     contract(net::TensorNetwork; optimize=false)
 
 Fully contract a given TensorNetwork object.
 """
-function contract(net::TensorNetwork; optimize=false)
+function contract(net::TensorNetwork, optimize::Bool=false)
     if length(net.tensors) == 1
         return permutedims(net.tensors[1].data, getproperty.(net.openidx, :second))
     end

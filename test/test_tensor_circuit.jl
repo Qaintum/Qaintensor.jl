@@ -15,6 +15,17 @@ using Qaintmodels
 end
 
 @testset ExtendedTestSet "tensor circuit" begin
+    N = 1
+    # initial MPS wavefunction
+    ψ = GeneralTensorNetwork([], [], [])
+    push!(ψ.tensors, Tensor(randn(ComplexF64, (2, 6))))
+    # open (physical) legs
+    push!(ψ.openidx, 1=>1)
+    push!(ψ.openidx, 1=>2)
+
+    @test all(contract(ψ) .≈ ψ.tensors[1].data)
+end
+@testset ExtendedTestSet "tensor circuit" begin
 
     N = 3
 
@@ -40,6 +51,7 @@ end
     tensor_circuit!(ψ, cgc)
 
     @test ψref ≈ contract(ψ)[:]
+    @test ψref ≈ contract(ψ, true)[:]
 
 end
 

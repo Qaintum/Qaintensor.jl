@@ -15,6 +15,8 @@ Base.reshape(t::Tensor, dim::Tuple) = Tensor(reshape(t.data,dim))
 Base.reshape(t::Tensor, dim::Int...) = Tensor(reshape(t.data, Tuple(dim)))
 Base.size(t::Tensor) = Base.size(t.data)
 
+Base.transpose(t::Tensor) = Tensor(transpose(t.data))
+
 function Base.isapprox(t1::Tensor, t2::Tensor)
     all(t1.data .≈ t2.data)
 end
