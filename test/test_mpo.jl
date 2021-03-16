@@ -82,7 +82,7 @@ end
             mpo_gate = MPO(Ucnot)
             mps = MPS(ψ)
 
-            @test contract(apply_MPO(mps, mpo_gate, (targ, cntrl)))[:] ≈ apply(GU, ψ)
+            @test contract(apply_MPO(mps, mpo_gate, (targ, cntrl)))[:] ≈ apply(ψ, GU)
         end
 
         @testset "apply_mpo multi-qubit gate" begin
@@ -103,7 +103,7 @@ end
             for (s,com) in enumerate(combi)
                 iwires_sorted = Tuple(com)
                 circuit_GU_sorted = CircuitGate(iwires_sorted,GU); #GATE
-                ψ_gate_sorted = apply(circuit_GU_sorted, ψ);
+                ψ_gate_sorted = apply(ψ, circuit_GU_sorted);
                 ψ_mpo_sorted = apply_MPO(ψ_mps, MPO(U), iwires_sorted);
                 @test reshape(contract(ψ_mpo_sorted), 2^N) ≈ ψ_gate_sorted
                 @test contract(ψ_mpo_sorted) ≈ contract(apply_MPO(ψ_mps, circuit_GU_sorted))
@@ -113,7 +113,7 @@ end
                 w = [1:N...]
                 iwires = sample(w, M, replace = false)
                 circuit_GU = CircuitGate(Tuple(iwires),GU)
-                ψ_gate = apply(circuit_GU, ψ)
+                ψ_gate = apply(ψ, circuit_GU)
                 ψ_mpo = apply_MPO(ψ_mps, U, Tuple(iwires));
                 @test reshape(contract(ψ_mpo), 2^N) ≈ ψ_gate
                 @test contract(ψ_mpo) ≈ contract(apply_MPO(ψ_mps, circuit_GU))

@@ -4,6 +4,31 @@ using Qaintensor
 using Qaintessent
 using Qaintmodels
 
+@testset ExtendedTestSet "tensor help functions" begin
+    rand_data = randn(ComplexF64, (2,6))
+    t = Tensor(deepcopy(rand_data))
+    t1 = reshape(deepcopy(t), (3, 4))
+    t2 = reshape(deepcopy(t), 3, 4)
+    
+    @test t1 ≈ reshape(t, (3,4))
+    @test t2 ≈ reshape(t, (3,4))
+
+    t1 = transpose(t1)
+
+    @test t1 ≈ Tensor(transpose(reshape(t, (3,4)).data))
+end
+
+@testset ExtendedTestSet "tensor circuit" begin
+    N = 1
+    # initial MPS wavefunction
+    ψ = GeneralTensorNetwork([], [], [])
+    push!(ψ.tensors, Tensor(randn(ComplexF64, (2, 6))))
+    # open (physical) legs
+    push!(ψ.openidx, 1=>1)
+    push!(ψ.openidx, 1=>2)
+
+    @test all(contract(ψ) .≈ ψ.tensors[1].data)
+end
 @testset ExtendedTestSet "tensor circuit" begin
 
     N = 3
@@ -24,12 +49,13 @@ using Qaintmodels
     cgc = qft_circuit(N)
 
     # conventional statevector representation, as reference
-    ψref = apply(cgc, contract(ψ)[:])
+    ψref = apply(contract(ψ)[:], cgc)
 
     # using tensor network representation
     tensor_circuit!(ψ, cgc)
 
     @test ψref ≈ contract(ψ)[:]
+    @test ψref ≈ contract(ψ, true)[:]
 
 end
 
@@ -57,7 +83,7 @@ end
         circuit_gate((2), Z, (1))
             ]
 
-    ψref = apply(cgc, contract(ψ)[:])
+    ψref = apply(contract(ψ)[:], cgc)
 
     tensor_circuit!(ψ, cgc; is_decompose=true)
 
@@ -92,7 +118,7 @@ end
     circuit_gate(4, X, (1,2)),
     circuit_gate(3, ZGate()),
     ]
-    ψref = apply(cgc, contract(ψ)[:])
+    ψref = apply(contract(ψ)[:], cgc)
 
     tensor_circuit!(ψ, cgc; is_decompose=true)
 

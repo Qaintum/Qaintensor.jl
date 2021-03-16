@@ -4,6 +4,12 @@
 
 Update the tensor network description of a quantum state by a circuit gate,
 effectively applying the gate.
+```jldoctest; setup="using Random"
+julia> N = 2
+julia> ψ = MPS(rand(ComplexF64, 4)); 
+julia> tensor_circuit!(ψ, circuit_gate(1, X))
+
+```
 """
 function tensor_circuit!(ψ::TensorNetwork, cg::CircuitGate{M,G}; is_decompose=false) where {M,G}
     # TODO: specialization for various G
@@ -51,6 +57,13 @@ end
 
 Incorporate a circuit gate chain into a quantum tensor network state,
 effectively applying the circuit to the state.
+```jldoctest; setup="using Random"
+julia> N = 2
+julia> ψ = MPS(rand(ComplexF64, 4));
+julia> cgs = qft_circuit(N) 
+julia> tensor_circuit!(ψ, cgs)
+
+```
 """
 function tensor_circuit!(ψ::TensorNetwork, cgc::Vector{<:CircuitGate}; is_decompose=false)
     for gate in cgc

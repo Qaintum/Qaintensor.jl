@@ -2,7 +2,7 @@
 """
     Tensor
 
-Stores tensor data
+stores vector of tensors
 """
 struct Tensor
     data::Array
@@ -11,10 +11,12 @@ end
 
 Base.ndims(t::Tensor) = Base.ndims(t.data)
 
-Base.reshape(t::Tensor,dim::Tuple) = Tensor(Base.reshape(t.data,dim))
-Base.reshape(t::Tensor,dim::Int...) = reshape(t, dim)
+Base.reshape(t::Tensor, dim::Tuple) = Tensor(reshape(t.data,dim))
+Base.reshape(t::Tensor, dim::Int...) = Tensor(reshape(t.data, Tuple(dim)))
 Base.size(t::Tensor) = Base.size(t.data)
 
+Base.transpose(t::Tensor) = Tensor(transpose(t.data))
+
 function Base.isapprox(t1::Tensor, t2::Tensor)
-    t1.data ≈ t2.data
+    all(t1.data .≈ t2.data)
 end
