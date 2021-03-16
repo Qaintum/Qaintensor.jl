@@ -12,6 +12,10 @@ using Qaintmodels
     
     @test t1 ≈ reshape(t, (3,4))
     @test t2 ≈ reshape(t, (3,4))
+
+    t1 = transpose(t1)
+
+    @test t1 ≈ Tensor(transpose(reshape(t, (3,4)).data))
 end
 
 @testset ExtendedTestSet "tensor circuit" begin
