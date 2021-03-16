@@ -4,6 +4,16 @@ using Qaintensor
 using Qaintessent
 using Qaintmodels
 
+@testset ExtendedTestSet "tensor help functions" begin
+    rand_data = randn(ComplexF64, (2,6))
+    t = Tensor(deepcopy(rand_data))
+    t1 = reshape(deepcopy(t), (3, 4))
+    t2 = reshape(deepcopy(t), 3, 4)
+    
+    @test t1 ≈ reshape(t, (3,4))
+    @test t2 ≈ reshape(t, (3,4))
+end
+
 @testset ExtendedTestSet "tensor circuit" begin
 
     N = 3
